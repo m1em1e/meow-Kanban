@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MeowKanban 原型</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <header class="app-header">
+    <div class="header-left">
+      <button class="icon-button sidebar-toggle" id="sidebarToggle" type="button" aria-controls="appSidebar" aria-expanded="true" aria-label="隐藏侧边栏" title="隐藏侧边栏">
+        <span aria-hidden="true"></span>
+        <span aria-hidden="true"></span>
+        <span aria-hidden="true"></span>
+      </button>
+      <a class="header-brand" href="./index.html" aria-label="MeowKanban 首页">
+        <span class="brand-mark small">M</span>
+        <span>
+          <strong>MeowKanban</strong>
+          <small>轻量项目看板</small>
+        </span>
+      </a>
+    </div>
+    <div class="top-actions header-actions">
+      <div class="search-filter">
+        <label class="search">
+          <span>搜索</span>
+          <input id="taskSearch" type="search" placeholder="任务、成员或标签">
+        </label>
+        <button class="button secondary filter-trigger" id="filterToggle" type="button" aria-expanded="false" aria-controls="filterMenu">筛选</button>
+        <div class="filter-menu" id="filterMenu" aria-hidden="true">
+          <button data-filter="all" class="filter-option active" type="button">全部任务</button>
+          <button data-filter="urgent" class="filter-option" type="button">高优先级</button>
+          <button data-filter="blocked" class="filter-option" type="button">阻塞</button>
+          <button data-filter="mine" class="filter-option" type="button">我负责</button>
+          <label class="filter-check">
+            <input id="toggleDone" type="checkbox">
+            <span>隐藏完成</span>
+          </label>
+        </div>
+      </div>
+      <div class="section-manager header-section-manager" aria-label="看板分区管理">
+        <button class="button secondary" id="sectionMenuToggle" type="button" aria-expanded="false" aria-controls="sectionMenu">添加分区</button>
+        <div class="section-menu" id="sectionMenu" aria-hidden="true">
+          <label class="section-field">
+            <span>分区名称</span>
+            <input id="newSectionName" type="text" placeholder="如：待发布">
+          </label>
+          <button class="button primary" id="addSection" type="button">创建分区</button>
+        </div>
+      </div>
+      <div class="member-menu" aria-label="成员菜单">
+        <button class="member-trigger" id="memberMenuToggle" type="button" aria-expanded="false" aria-controls="memberMenu" title="成员">
+          <span class="avatar-stack" aria-hidden="true">
+            <span class="avatar teal">林</span>
+            <span class="avatar violet">陈</span>
+            <span class="avatar amber">周</span>
+          </span>
+          <span>成员</span>
+        </button>
+        <div class="member-dropdown" id="memberMenu" aria-hidden="true">
+          <p class="label">最近登录</p>
+          <div class="member-row">
+            <span class="avatar teal">林</span>
+            <span>林夏</span>
+            <small>产品 · 刚刚</small>
+          </div>
+          <div class="member-row">
+            <span class="avatar violet">陈</span>
+            <span>陈予</span>
+            <small>前端 · 12 分钟前</small>
+          </div>
+          <div class="member-row">
+            <span class="avatar amber">周</span>
+            <span>周宁</span>
+            <small>后端 · 45 分钟前</small>
+          </div>
+          <div class="member-actions">
+            <button class="button secondary" type="button">权限编辑</button>
+            <button class="button primary" type="button">邀请</button>
+          </div>
+        </div>
+      </div>
+      <div class="user-menu" aria-label="个人菜单">
+        <button class="user-trigger" id="userMenuToggle" type="button" aria-expanded="false" aria-controls="userMenu" aria-label="打开个人菜单">
+          <span class="avatar rose">我</span>
+        </button>
+        <div class="user-dropdown" id="userMenu" aria-hidden="true">
+          <button class="user-menu-item" type="button">编辑用户信息</button>
+          <button class="user-menu-item" type="button">看板介绍</button>
+          <div class="menu-divider" aria-hidden="true"></div>
+          <button class="user-menu-item logout" type="button">登出</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="app-shell" id="appShell">
+    <aside class="sidebar" id="appSidebar" aria-label="工作区导航">
+      <a class="brand" href="./index.html" aria-label="MeowKanban 首页">
+        <span class="brand-mark">M</span>
+        <span>
+          <strong>MeowKanban</strong>
+          <small>轻量项目看板</small>
+        </span>
+      </a>
+
+      <nav class="nav-list" aria-label="主导航">
+        <button class="nav-item active" type="button">看板</button>
+        <button class="nav-item" type="button">我的任务</button>
+        <button class="nav-item" type="button">日历</button>
+        <div class="nav-group">
+          <button class="nav-item" type="button">统计</button>
+          <div class="stat-subnav" aria-label="统计子选项">
+            <button class="stat-subitem" type="button">
+              <span>今日待办</span>
+              <strong>8</strong>
+            </button>
+            <button class="stat-subitem" type="button">
+              <span>进行中</span>
+              <strong>11</strong>
+            </button>
+            <button class="stat-subitem" type="button">
+              <span>风险项</span>
+              <strong>3</strong>
+            </button>
+            <button class="stat-subitem" type="button">
+              <span>本周交付</span>
+              <strong>69%</strong>
+            </button>
+          </div>
+        </div>
+      </nav>
+
+    </aside>
+
+    <main class="main-content">
+      <section class="board" id="board" aria-label="任务看板"></section>
+    </main>
+  </div>
+
+  <aside class="drawer" id="taskDrawer" aria-hidden="true" aria-label="任务详情">
+    <div class="drawer-panel">
+      <button class="icon-button close" id="closeDrawer" type="button" aria-label="关闭">×</button>
+      <p class="eyebrow" id="drawerCode">TASK</p>
+      <h2 id="drawerTitle">任务标题</h2>
+      <p id="drawerDesc" class="drawer-desc"></p>
+      <dl class="detail-grid">
+        <div>
+          <dt>负责人</dt>
+          <dd id="drawerOwner"></dd>
+        </div>
+        <div>
+          <dt>截止</dt>
+          <dd id="drawerDue"></dd>
+        </div>
+        <div>
+          <dt>优先级</dt>
+          <dd id="drawerPriority"></dd>
+        </div>
+        <div>
+          <dt>状态</dt>
+          <dd id="drawerStatus"></dd>
+        </div>
+      </dl>
+      <div>
+        <p class="label">标签</p>
+        <div class="drawer-tags" id="drawerTags"></div>
+      </div>
+      <div class="drawer-actions">
+        <button class="button secondary" id="movePrev" type="button">上一步</button>
+        <button class="button primary" id="moveNext" type="button">下一步</button>
+      </div>
+    </div>
+  </aside>
+
+  <script src="./app.js"></script>
+</body>
+</html>
