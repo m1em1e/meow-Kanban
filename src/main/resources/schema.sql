@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS mk_user (
   salt VARCHAR(100) NOT NULL,
   nickname VARCHAR(50) NOT NULL,
   email VARCHAR(120),
-  avatar VARCHAR(500),
+  avatar_resource_id INTEGER,
   status VARCHAR(20) NOT NULL DEFAULT 'active',
   last_login_time DATETIME,
   created_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -16,6 +16,20 @@ CREATE TABLE IF NOT EXISTS mk_user (
 
 CREATE UNIQUE INDEX IF NOT EXISTS uk_mk_user_username ON mk_user(username);
 CREATE UNIQUE INDEX IF NOT EXISTS uk_mk_user_email ON mk_user(email);
+
+CREATE TABLE IF NOT EXISTS mk_file_resource (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  file_name VARCHAR(255) NOT NULL,
+  storage_path VARCHAR(500) NOT NULL,
+  content_type VARCHAR(100),
+  file_size INTEGER NOT NULL DEFAULT 0,
+  uploaded_by INTEGER,
+  created_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  deleted INTEGER NOT NULL DEFAULT 0,
+  deleted_time DATETIME
+);
+
+CREATE INDEX IF NOT EXISTS idx_mk_file_resource_uploaded_by ON mk_file_resource(uploaded_by);
 
 CREATE TABLE IF NOT EXISTS mk_board (
   id INTEGER PRIMARY KEY AUTOINCREMENT,

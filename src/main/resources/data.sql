@@ -5,7 +5,6 @@ INSERT INTO mk_user (
   salt,
   nickname,
   email,
-  avatar,
   status
 ) VALUES (
   1,
@@ -14,7 +13,6 @@ INSERT INTO mk_user (
   'CHANGE_ME_SALT',
   '管理员',
   'admin@meowkanban.local',
-  NULL,
   'active'
 ) ON CONFLICT(id) DO NOTHING;
 
