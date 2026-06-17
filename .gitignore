@@ -32,6 +32,10 @@ build/
 ### VS Code ###
 .vscode/
 
+### database ###
+data/*.db
+data/*.db-*
+
 
 ### codex ###
 .codex/
