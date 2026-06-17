@@ -1,8 +1,8 @@
 package com.godotvillage.meowkanban.common.exception.handler;
 
-import com.godotvillage.godotgameallianceback.common.exception.BaseException;
-import com.godotvillage.godotgameallianceback.common.exception.LoginFailedException;
-import com.godotvillage.godotgameallianceback.common.result.Result;
+import com.godotvillage.meowkanban.common.exception.BaseException;
+import com.godotvillage.meowkanban.common.exception.LoginFailedException;
+import com.godotvillage.meowkanban.common.result.Result;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.validation.BindException;

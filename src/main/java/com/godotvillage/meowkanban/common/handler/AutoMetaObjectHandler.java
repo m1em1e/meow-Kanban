@@ -17,12 +17,12 @@ public class AutoMetaObjectHandler implements MetaObjectHandler {
     @Override
     public void insertFill(MetaObject metaObject) {
         this.setFieldValByName("id", IdUtil.getSnowflakeNextId(), metaObject);
-        this.setFieldValByName("createTime", LocalDateTime.now(), metaObject);
-        this.setFieldValByName("updateTime", LocalDateTime.now(), metaObject);
+        this.setFieldValByName("createdTime", LocalDateTime.now(), metaObject);
+        this.setFieldValByName("updatedTime", LocalDateTime.now(), metaObject);
     }
 
     @Override
     public void updateFill(MetaObject metaObject) {
-        this.setFieldValByName("updateTime", LocalDateTime.now(), metaObject);
+        this.setFieldValByName("updatedTime", LocalDateTime.now(), metaObject);
     }
 }

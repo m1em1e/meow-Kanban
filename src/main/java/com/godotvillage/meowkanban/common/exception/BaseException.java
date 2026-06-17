@@ -1,7 +1,7 @@
 package com.godotvillage.meowkanban.common.exception;
 
 
-import com.godotvillage.godotgameallianceback.common.constant.ExceptionStatusCodeConstant;
+import com.godotvillage.meowkanban.common.constant.ExceptionStatusCodeConstant;
 
 /**
  * @author mkdir
