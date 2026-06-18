@@ -27,8 +27,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(LoginFailedException.class)
     @ResponseStatus(HttpStatus.UNAUTHORIZED)
     public Result<?> handleLoginFailedException(LoginFailedException e) {
-        log.error("LoginFailedException: {}", e.getMessage(), e);
-        return Result.error(e.getMessage());
+        log.warn("LoginFailedException: {}", e.getMessage());
+        return Result.error(401, e.getMessage());
     }
 
 //    @ExceptionHandler(BadCredentialsException.class)
