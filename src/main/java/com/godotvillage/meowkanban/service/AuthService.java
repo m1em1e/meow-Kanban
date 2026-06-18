@@ -1,0 +1,13 @@
+package com.godotvillage.meowkanban.service;
+
+import com.godotvillage.meowkanban.domain.param.LoginParam;
+import com.godotvillage.meowkanban.domain.param.RegisterParam;
+import com.godotvillage.meowkanban.domain.vo.LoginVO;
+import com.godotvillage.meowkanban.domain.vo.UserProfileVO;
+
+public interface AuthService {
+
+    UserProfileVO register(RegisterParam param);
+
+    LoginVO login(LoginParam param);
+}
