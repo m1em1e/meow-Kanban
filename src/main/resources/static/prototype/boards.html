@@ -89,9 +89,25 @@
         </div>
       </article>
 
-      <div class="board-empty" v-if="filteredBoards.length === 0">
+      <div class="board-empty" v-if="!loading && filteredBoards.length === 0">
         <strong>没有匹配的看板</strong>
         <span>调整搜索或筛选条件后再试。</span>
+      </div>
+
+      <div class="board-load-state" v-if="loadError">
+        <span>{{ loadError }}</span>
+        <button class="button secondary" type="button" @click="loadBoards()">重试</button>
+      </div>
+      <div class="board-load-state" v-else-if="loading">
+        <span>加载中</span>
+      </div>
+      <div class="board-pagination" v-else-if="total > 0">
+        <span>共 {{ total }} 个看板</span>
+        <div class="board-pagination-actions">
+          <button class="button secondary" type="button" :disabled="!canPrevPage" @click="goToPage(pageIndex - 1)">上一页</button>
+          <strong>{{ pageIndex }} / {{ pages }}</strong>
+          <button class="button secondary" type="button" :disabled="!canNextPage" @click="goToPage(pageIndex + 1)">下一页</button>
+        </div>
       </div>
     </section>
   </main>

@@ -1361,6 +1361,45 @@ body.sidebar-collapsed .sidebar-toggle span:nth-child(3) {
   color: var(--ink);
 }
 
+.board-load-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 52px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+}
+
+.board-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 58px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+}
+
+.board-pagination-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.board-pagination-actions strong {
+  min-width: 56px;
+  color: var(--ink);
+  text-align: center;
+}
+
+.button:disabled {
+  cursor: not-allowed;
+  opacity: .48;
+}
+
 @keyframes pageInNext {
   from {
     opacity: 0;
