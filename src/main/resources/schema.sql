@@ -65,6 +65,7 @@ CREATE TABLE IF NOT EXISTS mk_board (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   name VARCHAR(100) NOT NULL,
   description VARCHAR(500),
+  cover_resource_id INTEGER,
   owner_id INTEGER NOT NULL,
   visibility INTEGER NOT NULL DEFAULT 0,
   created_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -90,6 +91,35 @@ CREATE TABLE IF NOT EXISTS mk_board_member (
 
 CREATE UNIQUE INDEX IF NOT EXISTS uk_mk_board_member_board_user ON mk_board_member(board_id, user_id);
 CREATE INDEX IF NOT EXISTS idx_mk_board_member_user_id ON mk_board_member(user_id);
+
+CREATE TABLE IF NOT EXISTS mk_board_favorite (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  board_id INTEGER NOT NULL,
+  user_id INTEGER NOT NULL,
+  created_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  deleted INTEGER NOT NULL DEFAULT 0,
+  deleted_time DATETIME
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS uk_mk_board_favorite_user_board ON mk_board_favorite(user_id, board_id);
+CREATE INDEX IF NOT EXISTS idx_mk_board_favorite_board_id ON mk_board_favorite(board_id);
+
+CREATE TABLE IF NOT EXISTS mk_board_recent (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  board_id INTEGER NOT NULL,
+  user_id INTEGER NOT NULL,
+  last_active_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  active_count INTEGER NOT NULL DEFAULT 1,
+  created_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  deleted INTEGER NOT NULL DEFAULT 0,
+  deleted_time DATETIME
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS uk_mk_board_recent_user_board ON mk_board_recent(user_id, board_id);
+CREATE INDEX IF NOT EXISTS idx_mk_board_recent_user_active_time ON mk_board_recent(user_id, last_active_time);
+CREATE INDEX IF NOT EXISTS idx_mk_board_recent_board_id ON mk_board_recent(board_id);
 
 CREATE TABLE IF NOT EXISTS mk_board_section (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
