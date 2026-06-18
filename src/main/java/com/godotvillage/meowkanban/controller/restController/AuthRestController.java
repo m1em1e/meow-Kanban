@@ -5,7 +5,7 @@ import com.godotvillage.meowkanban.domain.param.LoginParam;
 import com.godotvillage.meowkanban.domain.param.RegisterParam;
 import com.godotvillage.meowkanban.domain.vo.LoginVO;
 import com.godotvillage.meowkanban.domain.vo.UserProfileVO;
-import com.godotvillage.meowkanban.service.AuthService;
+import com.godotvillage.meowkanban.service.IAuthService;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -18,10 +18,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/v1/auth")
-public class AuthController {
+public class AuthRestController {
 
     @Resource
-    private AuthService authService;
+    private IAuthService authService;
 
     @PostMapping("/register")
     public Result<UserProfileVO> register(@Valid @RequestBody RegisterParam param) {

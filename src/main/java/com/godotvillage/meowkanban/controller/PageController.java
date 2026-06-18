@@ -27,4 +27,9 @@ public class PageController {
 		return "boards";
 	}
 
+	@GetMapping("/detail/{id}")
+	public String detail() {
+		return "detail";
+	}
+
 }
