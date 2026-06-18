@@ -1,4 +1,4 @@
-package com.godotvillage.meowkanban.entity;
+package com.godotvillage.meowkanban.domain.entity;
 
 import com.baomidou.mybatisplus.annotation.FieldFill;
 import com.baomidou.mybatisplus.annotation.IdType;

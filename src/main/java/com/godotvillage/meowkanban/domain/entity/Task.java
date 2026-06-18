@@ -1,4 +1,4 @@
-package com.godotvillage.meowkanban.entity;
+package com.godotvillage.meowkanban.domain.entity;
 
 import com.baomidou.mybatisplus.annotation.FieldFill;
 import com.baomidou.mybatisplus.annotation.IdType;
@@ -8,20 +8,39 @@ import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Data
-@TableName("mk_task_comment")
-public class TaskComment {
+@TableName("mk_task")
+public class Task {
 
     @TableId(value = "id", type = IdType.ASSIGN_ID)
     private Long id;
 
-    private Long taskId;
+    private Long boardId;
 
-    private Long userId;
+    private Long sectionId;
 
-    private String content;
+    private String taskNo;
+
+    private String title;
+
+    private String description;
+
+    private Long ownerId;
+
+    private LocalDate dueDate;
+
+    private String priority;
+
+    private Integer blocked;
+
+    private Integer sortOrder;
+
+    private Long createdBy;
+
+    private Long updatedBy;
 
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createdTime;

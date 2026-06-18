@@ -1,4 +1,4 @@
-package com.godotvillage.meowkanban.entity;
+package com.godotvillage.meowkanban.domain.entity;
 
 import com.baomidou.mybatisplus.annotation.FieldFill;
 import com.baomidou.mybatisplus.annotation.IdType;
@@ -11,27 +11,17 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 @Data
-@TableName("mk_user")
-public class User {
+@TableName("mk_tag")
+public class Tag {
 
     @TableId(value = "id", type = IdType.ASSIGN_ID)
     private Long id;
 
-    private String username;
+    private Long boardId;
 
-    private String password;
+    private String name;
 
-    private String salt;
-
-    private String nickname;
-
-    private String email;
-
-    private Long avatarResourceId;
-
-    private String status;
-
-    private LocalDateTime lastLoginTime;
+    private String color;
 
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createdTime;

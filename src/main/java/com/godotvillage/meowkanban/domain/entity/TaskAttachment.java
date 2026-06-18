@@ -1,33 +1,39 @@
-package com.godotvillage.meowkanban.entity;
+package com.godotvillage.meowkanban.domain.entity;
 
 import com.baomidou.mybatisplus.annotation.FieldFill;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
 import java.time.LocalDateTime;
 
 @Data
-@TableName("mk_task_activity")
-public class TaskActivity {
+@TableName("mk_task_attachment")
+public class TaskAttachment {
 
     @TableId(value = "id", type = IdType.ASSIGN_ID)
     private Long id;
 
     private Long taskId;
 
-    private Long actorId;
+    private String fileName;
 
-    private String action;
+    private String storagePath;
 
-    private String beforeValue;
+    private String contentType;
 
-    private String afterValue;
+    private Long fileSize;
 
-    private String remark;
+    private Long uploadedBy;
 
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createdTime;
+
+    @TableLogic
+    private Integer deleted;
+
+    private LocalDateTime deletedTime;
 }
