@@ -9,11 +9,38 @@ INSERT INTO mk_user (
 ) VALUES (
   1,
   'admin',
-  'CHANGE_ME_WHEN_AUTH_IS_IMPLEMENTED',
-  'CHANGE_ME_SALT',
+  '$2a$10$3xPuywCsbpJQzVUa9MYU1OyUxmWOWnUdatZPGxZO1ehs/3CP1BZjO',
+  'BCrypt',
   '管理员',
   'admin@meowkanban.local',
   'active'
+) ON CONFLICT(id) DO UPDATE SET
+  password = excluded.password,
+  salt = excluded.salt
+WHERE mk_user.password = 'CHANGE_ME_WHEN_AUTH_IS_IMPLEMENTED';
+
+INSERT INTO mk_role (
+  id,
+  role_code,
+  role_name,
+  description,
+  sort_order
+) VALUES
+  (1, 'ROLE_ADMIN', '系统管理员', '拥有系统管理权限和业务操作权限', 10),
+  (2, 'ROLE_USER', '普通用户', '拥有基础业务操作权限', 20),
+  (3, 'ROLE_VIEWER', '只读用户', '仅拥有基础查看权限', 30)
+ON CONFLICT(id) DO NOTHING;
+
+INSERT INTO mk_user_role (
+  id,
+  user_id,
+  role_id,
+  created_by
+) VALUES (
+  1,
+  1,
+  1,
+  1
 ) ON CONFLICT(id) DO NOTHING;
 
 INSERT INTO mk_board (

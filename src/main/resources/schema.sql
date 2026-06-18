@@ -17,6 +17,36 @@ CREATE TABLE IF NOT EXISTS mk_user (
 CREATE UNIQUE INDEX IF NOT EXISTS uk_mk_user_username ON mk_user(username);
 CREATE UNIQUE INDEX IF NOT EXISTS uk_mk_user_email ON mk_user(email);
 
+CREATE TABLE IF NOT EXISTS mk_role (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  role_code VARCHAR(50) NOT NULL,
+  role_name VARCHAR(50) NOT NULL,
+  description VARCHAR(255),
+  status VARCHAR(20) NOT NULL DEFAULT 'active',
+  sort_order INTEGER NOT NULL DEFAULT 0,
+  created_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  deleted INTEGER NOT NULL DEFAULT 0,
+  deleted_time DATETIME
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS uk_mk_role_code ON mk_role(role_code);
+CREATE INDEX IF NOT EXISTS idx_mk_role_status ON mk_role(status);
+
+CREATE TABLE IF NOT EXISTS mk_user_role (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  role_id INTEGER NOT NULL,
+  created_by INTEGER,
+  created_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  deleted INTEGER NOT NULL DEFAULT 0,
+  deleted_time DATETIME
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS uk_mk_user_role_user_role ON mk_user_role(user_id, role_id);
+CREATE INDEX IF NOT EXISTS idx_mk_user_role_role_id ON mk_user_role(role_id);
+
 CREATE TABLE IF NOT EXISTS mk_file_resource (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   file_name VARCHAR(255) NOT NULL,
