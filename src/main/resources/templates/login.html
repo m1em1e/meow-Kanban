@@ -22,7 +22,7 @@
         <h1>欢迎回来</h1>
       </div>
 
-      <form class="auth-form active" id="loginForm" method="post" action="#">
+      <form class="auth-form active" id="loginForm" method="post" action="/api/v1/auth/login" th:action="@{/api/v1/auth/login}">
         <label class="auth-field">
           <span>用户名</span>
           <input type="text" name="username" autocomplete="username" placeholder="请输入用户名">
@@ -41,6 +41,8 @@
           </label>
           <button class="link-button" type="button">忘记密码</button>
         </div>
+        <p class="form-message error" th:if="${param.error}">用户名或密码错误</p>
+        <p class="form-message success" th:if="${param.registered}">注册成功，请登录</p>
         <button class="button primary auth-submit" type="submit">登录</button>
       </form>
 

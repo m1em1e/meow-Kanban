@@ -81,8 +81,35 @@ document.querySelectorAll("[data-password-toggle]").forEach((button) => {
   });
 });
 
-document.querySelector("#finishRegister").addEventListener("click", () => {
-  updatePasswordMessage();
+document.querySelector("#finishRegister").addEventListener("click", async () => {
+  if (!updatePasswordMessage()) {
+    return;
+  }
+
+  const payload = {
+    username: document.querySelector('[name="username"]').value,
+    nickname: document.querySelector('[name="nickname"]').value,
+    email: document.querySelector('[name="email"]').value,
+    password: registerPassword.value
+  };
+
+  const response = await fetch("/api/v1/auth/register", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Accept": "application/json"
+    },
+    body: JSON.stringify(payload)
+  });
+
+  const result = await response.json();
+  if (response.ok && result.code === 1) {
+    window.location.href = "/login?registered";
+    return;
+  }
+
+  passwordMessage.textContent = result.msg || "注册失败";
+  passwordMessage.className = "form-message error";
 });
 
 registerPassword.addEventListener("input", updatePasswordMessage);
