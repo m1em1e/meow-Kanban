@@ -11,21 +11,19 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 @Data
-@TableName("mk_board")
-public class Board {
+@TableName("mk_board_recent")
+public class BoardRecent {
 
     @TableId(value = "id", type = IdType.ASSIGN_ID)
     private Long id;
 
-    private String name;
+    private Long boardId;
 
-    private String description;
+    private Long userId;
 
-    private Long coverResourceId;
+    private LocalDateTime lastActiveTime;
 
-    private Long ownerId;
-
-    private Integer visibility;
+    private Integer activeCount;
 
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createdTime;
