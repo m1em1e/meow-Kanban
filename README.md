@@ -1,6 +1,6 @@
 # MeowKanban
 
-MeowKanban 是一个轻量级项目看板应用，目前仓库包含 Spring Boot 项目骨架、通用后端基础类，以及一个可直接预览的静态看板原型。
+MeowKanban 是一个轻量级项目看板应用，目前仓库包含 Spring Boot 后端基础结构、数据库初始化脚本、Thymeleaf 登录/注册页面，以及一个可直接预览的静态看板原型。
 
 ## 项目功能
 
@@ -15,58 +15,120 @@ MeowKanban 是一个轻量级项目看板应用，目前仓库包含 Spring Boot
 ## 技术栈
 
 - Java 17
-- Spring Boot 3.5.14
-- Maven Wrapper
-- Thymeleaf：计划用于服务端模板渲染、页面入口和基础布局
-- Vue：计划用于看板交互、组件化任务卡片和局部状态管理
-- SQLite：计划作为默认轻量级数据库
+- Spring Boot 3.5.13
+- Maven
+- Thymeleaf：用于服务端页面模板渲染
+- Spring Security：当前已引入并配置为开发阶段放行所有请求
+- MyBatis-Plus：用于数据访问层能力
+- SQLite：当前默认轻量级数据库
+- Hutool：通用工具库
 - HTML / CSS / JavaScript 静态原型：当前阶段的界面预览
 
 ## 目录结构
 
 ```text
 .
+├── data
+│   ├── .gitkeep
+│   └── meowkanban.db              # 本地运行生成的 SQLite 数据库，已被 .gitignore 忽略
+├── docs
+│   ├── 数据库设计.md
+│   └── 接口文档.md
+├── LICENSE
+├── NOTICE
 ├── pom.xml
-├── mvnw / mvnw.cmd
+├── README.md
 ├── src
 │   ├── main
 │   │   ├── java/com/godotvillage/meowkanban
 │   │   │   ├── MeowKanbanApplication.java
-│   │   │   └── common
-│   │   │       ├── constant
-│   │   │       ├── exception
-│   │   │       ├── handler
-│   │   │       └── result
+│   │   │   ├── common
+│   │   │   │   ├── config
+│   │   │   │   │   ├── JacksonConfig.java
+│   │   │   │   │   └── SecurityConfig.java
+│   │   │   │   ├── constant
+│   │   │   │   │   └── ExceptionStatusCodeConstant.java
+│   │   │   │   ├── exception
+│   │   │   │   │   ├── handler
+│   │   │   │   │   │   └── GlobalExceptionHandler.java
+│   │   │   │   │   ├── BaseException.java
+│   │   │   │   │   ├── DataSaveFaiedException.java
+│   │   │   │   │   ├── ImageErrorException.java
+│   │   │   │   │   └── LoginFailedException.java
+│   │   │   │   ├── handler
+│   │   │   │   │   └── AutoMetaObjectHandler.java
+│   │   │   │   └── result
+│   │   │   │       └── Result.java
+│   │   │   ├── controller
+│   │   │   │   ├── restController        # REST 控制器预留目录
+│   │   │   │   └── PageController.java   # 页面访问入口，返回 login/register 视图
+│   │   │   ├── domain
+│   │   │   │   ├── entity
+│   │   │   │   │   ├── Board.java
+│   │   │   │   │   ├── BoardMember.java
+│   │   │   │   │   ├── BoardSection.java
+│   │   │   │   │   ├── Tag.java
+│   │   │   │   │   ├── Task.java
+│   │   │   │   │   ├── TaskActivity.java
+│   │   │   │   │   ├── TaskAttachment.java
+│   │   │   │   │   ├── TaskComment.java
+│   │   │   │   │   ├── TaskTag.java
+│   │   │   │   │   ├── User.java
+│   │   │   │   │   └── UserPreference.java
+│   │   │   │   ├── param
+│   │   │   │   │   └── LoginParam.java
+│   │   │   │   └── vo
+│   │   │   │       ├── LoginVO.java
+│   │   │   │       └── UserProfileVO.java
+│   │   │   ├── mapper                   # Mapper 预留目录
+│   │   │   └── service
+│   │   │       └── impl                 # 服务实现预留目录
 │   │   └── resources
 │   │       ├── application.yaml
-│   │       └── static/prototype
-│   │           ├── index.html
-│   │           ├── styles.css
-│   │           └── app.js
+│   │       ├── data.sql
+│   │       ├── schema.sql
+│   │       ├── static/prototype
+│   │       │   ├── app.js
+│   │       │   ├── auth.html
+│   │       │   ├── auth.js
+│   │       │   ├── index.html
+│   │       │   ├── register.html
+│   │       │   ├── register.js
+│   │       │   └── styles.css
+│   │       └── templates
+│   │           ├── login.html
+│   │           └── register.html
 │   └── test
 │       └── java/com/godotvillage/meowkanban
-└── README.md
+│           └── MeowKanbanApplicationTests.java
+└── tools
 ```
+
+说明：
+
+- `src/main/resources/templates` 是 Thymeleaf 页面目录，`PageController` 中的 `/login` 和 `/register` 会分别返回这里的 `login.html` 和 `register.html`。
+- `src/main/resources/static/prototype` 是静态原型目录，其中 `index.html` 可直接用浏览器打开预览；Thymeleaf 页面应通过 Spring Boot 访问。
+- `data/meowkanban.db`、`target/`、`.idea/` 等属于本地运行或 IDE 生成内容，不作为项目源码维护。
 
 ## 快速开始
 
 ### 环境要求
 
 - JDK 17+
-- Maven 可选，项目已内置 Maven Wrapper
+- Maven
 
 ### 运行测试
 
 Windows:
 
 ```powershell
-.\mvnw.cmd test
+mvn test
 ```
 
 macOS / Linux:
 
 ```bash
-./mvnw test
+mvn test
 ```
 
 ### 启动 Spring Boot 应用
@@ -74,13 +136,20 @@ macOS / Linux:
 Windows:
 
 ```powershell
-.\mvnw.cmd spring-boot:run
+mvn spring-boot:run
 ```
 
 macOS / Linux:
 
 ```bash
-./mvnw spring-boot:run
+mvn spring-boot:run
+```
+
+启动后可访问：
+
+```text
+http://localhost:8080/login
+http://localhost:8080/register
 ```
 
 ### 预览静态原型
@@ -93,15 +162,22 @@ src/main/resources/static/prototype/index.html
 
 可以直接用浏览器打开该文件进行预览。
 
-> 注意：当前 `pom.xml` 暂未引入 `spring-boot-starter-web`，因此静态原型主要按本地 HTML 文件方式预览。后续如果需要通过 Spring Boot 提供 Web 访问，可加入 Web Starter 并访问对应静态资源路径。
+通过 Spring Boot 启动后，也可以访问静态资源路径：
+
+```text
+http://localhost:8080/prototype/index.html
+```
 
 ## 当前状态
 
 项目处于早期开发阶段：
 
 - 后端已具备 Spring Boot 启动类、统一返回结果、基础异常和全局异常处理等公共结构。
+- 已引入 Spring Web、Thymeleaf、Validation、Spring Security、MyBatis-Plus、SQLite JDBC 等基础依赖。
+- 已有 SQLite 初始化脚本 `schema.sql` 和 `data.sql`，默认数据库路径配置在 `application.yaml` 中。
+- 已有 `/login`、`/register` 页面入口和对应 Thymeleaf 模板。
 - 前端已有静态看板原型，但任务数据仍写在前端 JavaScript 中。
-- 暂未接入数据库、用户认证、任务 API、权限控制等完整业务能力。
+- 用户认证、任务 API、权限控制、真实业务服务层等能力仍处于开发中。
 
 ## 开源协议
 
@@ -121,7 +197,7 @@ src/main/resources/static/prototype/index.html
 
 ### 数据库方案
 
-项目计划优先使用 SQLite 作为默认数据库，适合单机部署、个人项目管理和轻量团队场景。
+项目当前优先使用 SQLite 作为默认数据库，适合单机部署、个人项目管理和轻量团队场景。
 
 后续会开放数据库配置能力，预留对主流数据库的兼容空间：
 
@@ -131,10 +207,9 @@ src/main/resources/static/prototype/index.html
 
 ## 后续规划
 
-- 引入 `spring-boot-starter-web`，提供 REST API。
-- 设计任务、看板、分区、用户、成员关系等领域模型。
-- 接入 SQLite，并持久化任务、看板分区和用户配置。
+- 补充 REST Controller、Service、Mapper，实现任务、看板、分区、用户等核心业务 API。
+- 将静态原型中的任务、看板分区和用户配置逐步接入 SQLite 持久化。
 - 增加可配置的数据源方案，为 MySQL、NoSQL 等数据库适配预留扩展点。
-- 引入 Thymeleaf 页面模板，并逐步将静态原型改造为 Vue 驱动的真实交互页面。
+- 继续完善 Thymeleaf 页面模板，并逐步将静态原型改造为 Vue 驱动的真实交互页面。
 - 增加登录、权限、团队协作、评论、附件和操作日志。
 - 补充接口测试、业务单元测试和前端交互测试。
