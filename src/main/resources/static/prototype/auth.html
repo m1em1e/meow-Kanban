@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MeowKanban 登录原型</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body class="auth-page">
+  <main class="auth-shell" aria-label="账号登录">
+    <section class="auth-panel" aria-label="登录">
+      <a class="brand auth-brand" href="./index.html" aria-label="返回 MeowKanban 看板">
+        <span class="brand-mark">M</span>
+        <span>
+          <strong>MeowKanban</strong>
+          <small>轻量项目看板</small>
+        </span>
+      </a>
+
+      <div class="auth-copy">
+        <p class="eyebrow">账号入口</p>
+        <h1>欢迎回来</h1>
+      </div>
+
+      <form class="auth-form active" id="loginForm">
+        <label class="auth-field">
+          <span>用户名</span>
+          <input type="text" name="username" autocomplete="username" placeholder="admin">
+        </label>
+        <label class="auth-field">
+          <span>密码</span>
+          <span class="password-control">
+            <input id="loginPassword" type="password" name="password" autocomplete="current-password" placeholder="输入密码">
+            <button class="text-button" type="button" data-password-toggle="loginPassword">显示</button>
+          </span>
+        </label>
+        <div class="auth-options">
+          <label class="remember-check">
+            <input type="checkbox" checked>
+            <span>保持登录</span>
+          </label>
+          <button class="link-button" type="button">忘记密码</button>
+        </div>
+        <button class="button primary auth-submit" type="button">登录</button>
+      </form>
+
+      <div class="auth-switch">
+        <span>还没有账号？</span>
+        <a class="link-button" href="./register.html">创建账号</a>
+      </div>
+    </section>
+  </main>
+
+  <script src="./auth.js"></script>
+</body>
+</html>
