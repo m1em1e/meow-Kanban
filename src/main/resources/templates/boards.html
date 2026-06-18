@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MeowKanban 看板列表</title>
+  <link rel="stylesheet" href="/prototype/styles.css" th:href="@{/prototype/styles.css}">
+</head>
+<body>
+  <header class="app-header boards-header">
+    <div class="header-left">
+      <a class="header-brand" href="/boards" th:href="@{/boards}" aria-label="MeowKanban 看板列表">
+        <span class="brand-mark small">M</span>
+        <span>
+          <strong>MeowKanban</strong>
+          <small>轻量项目看板</small>
+        </span>
+      </a>
+    </div>
+    <div class="top-actions header-actions">
+      <a class="button secondary boards-link-button" href="/prototype/index.html" th:href="@{/prototype/index.html}">进入示例看板</a>
+      <div class="user-menu" aria-label="个人菜单">
+        <button class="user-trigger" type="button" aria-label="打开个人菜单">
+          <span class="avatar rose">我</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="boards-page" id="boardListApp" v-cloak>
+    <section class="boards-toolbar" aria-label="看板筛选">
+      <div>
+        <p class="eyebrow">工作区</p>
+        <h1>看板</h1>
+      </div>
+      <div class="boards-controls">
+        <label class="search boards-search">
+          <span>搜索</span>
+          <input v-model.trim="query" type="search" placeholder="看板名称或描述">
+        </label>
+        <div class="segmented-control" aria-label="可见性筛选">
+          <button
+            v-for="item in filters"
+            :key="item.value"
+            class="segment"
+            :class="{ active: filter === item.value }"
+            type="button"
+            @click="filter = item.value"
+          >{{ item.label }}</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="boards-summary" aria-label="看板概览">
+      <div>
+        <span>可访问</span>
+        <strong>{{ boards.length }}</strong>
+      </div>
+      <div>
+        <span>我管理</span>
+        <strong>{{ managedCount }}</strong>
+      </div>
+      <div>
+        <span>只读</span>
+        <strong>{{ viewerCount }}</strong>
+      </div>
+    </section>
+
+    <section class="board-list" aria-label="可访问看板列表">
+      <article
+        v-for="board in filteredBoards"
+        :key="board.id"
+        class="board-row"
+      >
+        <div class="board-row-main">
+          <div class="board-icon" :class="board.accent">{{ board.shortName }}</div>
+          <div class="board-copy">
+            <div class="board-title-line">
+              <h2>{{ board.name }}</h2>
+              <span class="badge" :class="board.visibility === '公开' ? 'normal' : 'blocked'">{{ board.visibility }}</span>
+              <span class="badge" :class="roleClass(board.role)">{{ roleLabel(board.role) }}</span>
+            </div>
+            <p>{{ board.description }}</p>
+          </div>
+        </div>
+        <div class="board-row-meta">
+          <span>{{ board.updatedAt }}</span>
+          <a class="button primary boards-open-button" :href="board.href">打开</a>
+        </div>
+      </article>
+
+      <div class="board-empty" v-if="filteredBoards.length === 0">
+        <strong>没有匹配的看板</strong>
+        <span>调整搜索或筛选条件后再试。</span>
+      </div>
+    </section>
+  </main>
+
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <script src="/prototype/boards.js" th:src="@{/prototype/boards.js}"></script>
+</body>
+</html>

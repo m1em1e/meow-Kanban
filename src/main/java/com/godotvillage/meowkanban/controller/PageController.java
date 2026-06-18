@@ -22,4 +22,9 @@ public class PageController {
 		return "login";
 	}
 
+	@GetMapping("/boards")
+	public String boards() {
+		return "boards";
+	}
+
 }
