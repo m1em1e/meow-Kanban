@@ -13,7 +13,7 @@ import com.godotvillage.meowkanban.domain.vo.UserProfileVO;
 import com.godotvillage.meowkanban.mapper.RoleMapper;
 import com.godotvillage.meowkanban.mapper.UserMapper;
 import com.godotvillage.meowkanban.mapper.UserRoleMapper;
-import com.godotvillage.meowkanban.service.AuthService;
+import com.godotvillage.meowkanban.service.IAuthService;
 import jakarta.annotation.Resource;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -29,7 +29,7 @@ import org.springframework.util.StringUtils;
 import java.util.List;
 
 @Service
-public class AuthServiceImpl implements AuthService {
+public class AuthServiceImpl implements IAuthService {
 
     private static final String ACTIVE_STATUS = "active";
     private static final String DEFAULT_ROLE_CODE = "ROLE_USER";

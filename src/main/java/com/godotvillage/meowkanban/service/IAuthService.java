@@ -5,7 +5,7 @@ import com.godotvillage.meowkanban.domain.param.RegisterParam;
 import com.godotvillage.meowkanban.domain.vo.LoginVO;
 import com.godotvillage.meowkanban.domain.vo.UserProfileVO;
 
-public interface AuthService {
+public interface IAuthService {
 
     UserProfileVO register(RegisterParam param);
 
