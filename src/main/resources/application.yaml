@@ -1,6 +1,10 @@
 spring:
   application:
     name: meowKanban
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
   datasource:
     driver-class-name: org.sqlite.JDBC
     url: jdbc:sqlite:./data/meowkanban.db
@@ -22,3 +26,7 @@ mybatis-plus:
       logic-delete-field: deleted
       logic-not-delete-value: 0
       logic-delete-value: 1
+
+meow-kanban:
+  resource:
+    storage-dir: data/resources
