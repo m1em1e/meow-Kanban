@@ -1,22 +1,17 @@
 package com.godotvillage.meowkanban.service.impl;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.godotvillage.meowkanban.common.exception.BaseException;
 import com.godotvillage.meowkanban.common.result.PageResult;
 import com.godotvillage.meowkanban.domain.entity.Board;
-import com.godotvillage.meowkanban.domain.entity.User;
 import com.godotvillage.meowkanban.domain.param.BoardInfoQueryParam;
-import com.godotvillage.meowkanban.domain.vo.BoardInfo;
+import com.godotvillage.meowkanban.domain.param.IdParam;
+import com.godotvillage.meowkanban.domain.vo.BoardInfoVO;
 import com.godotvillage.meowkanban.mapper.BoardMapper;
-import com.godotvillage.meowkanban.mapper.UserMapper;
 import com.godotvillage.meowkanban.service.IBoardService;
-import jakarta.annotation.Resource;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
 
 import java.util.List;
 
@@ -27,23 +22,16 @@ public class BoardServiceImpl extends ServiceImpl<BoardMapper, Board> implements
     private static final int DEFAULT_PAGE_SIZE = 10;
     private static final int MAX_PAGE_SIZE = 50;
 
-    @Resource
-    private UserMapper userMapper;
-
     @Override
-    public PageResult<BoardInfo> listBoardInfo(BoardInfoQueryParam param) {
+    public PageResult<BoardInfoVO> listBoardInfo(BoardInfoQueryParam param) {
         if (param == null) {
             param = new BoardInfoQueryParam();
         }
-        if (StringUtils.hasText(param.getKeyword())) {
-            param.setKeyword(param.getKeyword().trim());
-        }
         normalizePageParam(param);
-        param.setUserId(getCurrentUserId());
 
         Page<Board> page = new Page<>(param.getPageIndex(), param.getPageSize());
         IPage<Board> boardPage = baseMapper.getBoardInfoList(page, param);
-        List<BoardInfo> records = boardPage.getRecords().stream()
+        List<BoardInfoVO> records = boardPage.getRecords().stream()
                 .map(this::toBoardInfo)
                 .toList();
         return PageResult.of(
@@ -67,25 +55,20 @@ public class BoardServiceImpl extends ServiceImpl<BoardMapper, Board> implements
         param.setPageSize(pageSize);
     }
 
-    private Long getCurrentUserId() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated()) {
-            return null;
+    @Override
+    public List<BoardInfoVO> listRecentParticipatedBoards(IdParam param) {
+        if (param == null || param.getId() == null) {
+            throw new BaseException("用户 ID 不能为空");
         }
 
-        String username = authentication.getName();
-        if (!StringUtils.hasText(username) || "anonymousUser".equals(username)) {
-            return null;
-        }
-
-        User user = userMapper.selectOne(Wrappers.<User>lambdaQuery()
-                .eq(User::getUsername, username)
-                .eq(User::getDeleted, 0));
-        return user == null ? null : user.getId();
+        return baseMapper.getRecentParticipatedBoards(param.getId())
+                .stream()
+                .map(this::toBoardInfo)
+                .toList();
     }
 
-    private BoardInfo toBoardInfo(Board board) {
-        BoardInfo boardInfo = new BoardInfo();
+    private BoardInfoVO toBoardInfo(Board board) {
+        BoardInfoVO boardInfo = new BoardInfoVO();
         boardInfo.setId(board.getId());
         boardInfo.setName(board.getName());
         boardInfo.setDescription(board.getDescription());

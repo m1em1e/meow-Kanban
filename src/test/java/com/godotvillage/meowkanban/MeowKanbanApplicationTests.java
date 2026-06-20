@@ -4,13 +4,20 @@ import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.godotvillage.meowkanban.common.result.PageResult;
 import com.godotvillage.meowkanban.domain.entity.User;
 import com.godotvillage.meowkanban.domain.param.BoardInfoQueryParam;
+import com.godotvillage.meowkanban.domain.param.IdParam;
 import com.godotvillage.meowkanban.domain.param.LoginParam;
 import com.godotvillage.meowkanban.domain.param.RegisterParam;
-import com.godotvillage.meowkanban.domain.vo.BoardInfo;
+import com.godotvillage.meowkanban.domain.param.UserProfileUpdateParam;
+import com.godotvillage.meowkanban.domain.vo.BoardInfoVO;
+import com.godotvillage.meowkanban.domain.vo.FileResourceContentVO;
+import com.godotvillage.meowkanban.domain.vo.FileResourceInfoVO;
 import com.godotvillage.meowkanban.domain.vo.LoginVO;
+import com.godotvillage.meowkanban.domain.vo.UserProfileVO;
 import com.godotvillage.meowkanban.mapper.UserMapper;
 import com.godotvillage.meowkanban.service.IAuthService;
 import com.godotvillage.meowkanban.service.IBoardService;
+import com.godotvillage.meowkanban.service.IFileResourceService;
+import com.godotvillage.meowkanban.service.IUserService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -18,13 +25,16 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.mock.web.MockMultipartFile;
+
+import java.time.LocalDate;
 
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@SpringBootTest
+@SpringBootTest(properties = "meow-kanban.resource.storage-dir=target/test-resource-files")
 class MeowKanbanApplicationTests {
 
     @Autowired
@@ -33,6 +43,10 @@ class MeowKanbanApplicationTests {
     private IAuthService authService;
     @Autowired
     private IBoardService boardService;
+    @Autowired
+    private IFileResourceService fileResourceService;
+    @Autowired
+    private IUserService userService;
     @Autowired
     private UserMapper userMapper;
     @Autowired
@@ -55,12 +69,63 @@ class MeowKanbanApplicationTests {
     void listBoardInfoUsesDefaultPagination() {
         BoardInfoQueryParam param = new BoardInfoQueryParam();
 
-        PageResult<BoardInfo> result = boardService.listBoardInfo(param);
+        PageResult<BoardInfoVO> result = boardService.listBoardInfo(param);
 
         assertNotNull(result.getRecords());
         assertEquals(1L, result.getPageIndex());
         assertEquals(10L, result.getPageSize());
         assertTrue(result.getRecords().size() <= 10);
+    }
+
+    @Test
+    void listRecentParticipatedBoardsLimitsResult() {
+        IdParam param = new IdParam();
+        param.setId(1L);
+
+        java.util.List<BoardInfoVO> result = boardService.listRecentParticipatedBoards(param);
+
+        assertNotNull(result);
+        assertTrue(result.size() <= 5);
+        assertTrue(result.stream().allMatch(board -> board.getOwnerId() != null));
+    }
+
+    @Test
+    void uploadAndLoadFileResource() throws Exception {
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "hello.txt",
+                "text/plain",
+                "hello resource".getBytes()
+        );
+
+        FileResourceInfoVO info = fileResourceService.upload(file);
+        FileResourceContentVO content = fileResourceService.loadContent(info.getId());
+
+        assertEquals("hello.txt", info.getFileName());
+        assertEquals("text/plain", content.getContentType());
+        assertEquals("hello resource", new String(content.getResource().getInputStream().readAllBytes()));
+    }
+
+    @Test
+    @Transactional
+    void getAndUpdateUserProfile() {
+        IdParam idParam = new IdParam();
+        idParam.setId(1L);
+
+        UserProfileVO profile = userService.getUserProfileVO(idParam);
+        UserProfileUpdateParam updateParam = new UserProfileUpdateParam();
+        updateParam.setId(profile.getId());
+        updateParam.setNickname("管理员测试");
+        updateParam.setGender(1);
+        updateParam.setBirthday(LocalDate.of(1990, 1, 1));
+
+        UserProfileVO updatedProfile = userService.updateUserProfileVO(updateParam);
+
+        assertEquals(profile.getUsername(), updatedProfile.getUsername());
+        assertEquals(profile.getEmail(), updatedProfile.getEmail());
+        assertEquals("管理员测试", updatedProfile.getNickname());
+        assertEquals(1, updatedProfile.getGender());
+        assertEquals(LocalDate.of(1990, 1, 1), updatedProfile.getBirthday());
     }
 
     @Test

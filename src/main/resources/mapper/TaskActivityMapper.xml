@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.godotvillage.meowkanban.mapper.TaskActivityMapper">
+
+    <resultMap id="RecentActivityResultMap" type="com.godotvillage.meowkanban.domain.vo.RecentActivityVO">
+        <id property="id" column="id"/>
+        <result property="boardId" column="board_id"/>
+        <result property="boardTitle" column="board_title"/>
+        <result property="action" column="action"/>
+        <result property="createTime" column="create_time"/>
+    </resultMap>
+
+    <select id="getRecentActivity"
+            resultMap="RecentActivityResultMap">
+        SELECT ta.id,
+               t.board_id,
+               b.name AS board_title,
+               ta.action,
+               ta.created_time AS create_time
+        FROM mk_task_activity ta
+        INNER JOIN mk_task t ON t.id = ta.task_id
+        INNER JOIN mk_board b ON b.id = t.board_id
+        WHERE t.deleted = 0
+          AND b.deleted = 0
+        <if test="param != null and param.id != null">
+            AND ta.actor_id = #{param.id}
+        </if>
+        ORDER BY ta.created_time DESC, ta.id DESC
+    </select>
+
+</mapper>

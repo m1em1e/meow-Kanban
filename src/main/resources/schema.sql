@@ -5,6 +5,8 @@ CREATE TABLE IF NOT EXISTS mk_user (
   salt VARCHAR(100) NOT NULL,
   nickname VARCHAR(50) NOT NULL,
   email VARCHAR(120),
+  gender INTEGER NOT NULL DEFAULT -1,
+  birthday DATE,
   avatar_resource_id INTEGER,
   status VARCHAR(20) NOT NULL DEFAULT 'active',
   last_login_time DATETIME,

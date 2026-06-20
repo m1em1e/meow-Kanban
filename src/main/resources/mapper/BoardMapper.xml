@@ -42,4 +42,25 @@
         , b.id DESC
     </select>
 
+    <select id="getRecentParticipatedBoards"
+            resultType="com.godotvillage.meowkanban.domain.entity.Board">
+        SELECT b.*
+        FROM mk_board b
+        LEFT JOIN mk_board_recent br
+          ON br.board_id = b.id
+         AND br.user_id = #{userId}
+         AND br.deleted = 0
+        WHERE b.deleted = 0
+          AND (
+            b.owner_id = #{userId}
+            OR br.id IS NOT NULL
+          )
+        ORDER BY
+          CASE WHEN b.owner_id = #{userId} THEN 0 ELSE 1 END ASC,
+          CASE WHEN b.owner_id = #{userId} THEN b.updated_time END DESC,
+          br.last_active_time DESC,
+          b.id DESC
+        LIMIT 5
+    </select>
+
 </mapper>

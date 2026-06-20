@@ -124,6 +124,8 @@ public class AuthServiceImpl implements IAuthService {
         profileVO.setUsername(user.getUsername());
         profileVO.setNickname(user.getNickname());
         profileVO.setEmail(user.getEmail());
+        profileVO.setGender(user.getGender());
+        profileVO.setBirthday(user.getBirthday());
         profileVO.setStatus(user.getStatus());
         return profileVO;
     }

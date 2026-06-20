@@ -8,6 +8,7 @@ import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Data
@@ -26,6 +27,10 @@ public class User {
     private String nickname;
 
     private String email;
+
+    private Integer gender;
+
+    private LocalDate birthday;
 
     private Long avatarResourceId;
 

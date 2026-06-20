@@ -8,9 +8,13 @@ import com.godotvillage.meowkanban.domain.param.BoardInfoQueryParam;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
+import java.util.List;
+
 @Mapper
 public interface BoardMapper extends BaseMapper<Board> {
 
     IPage<Board> getBoardInfoList(Page<Board> page, @Param("param") BoardInfoQueryParam param);
+
+    List<Board> getRecentParticipatedBoards(@Param("userId") Long userId);
 
 }

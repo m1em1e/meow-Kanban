@@ -5,7 +5,7 @@ import lombok.NoArgsConstructor;
 
 @Data
 @NoArgsConstructor
-public class BoardInfo {
+public class BoardInfoVO {
 
     private Long id;
 
