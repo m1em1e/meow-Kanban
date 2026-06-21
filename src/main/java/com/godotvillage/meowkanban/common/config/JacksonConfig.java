@@ -2,6 +2,7 @@ package com.godotvillage.meowkanban.common.config;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateDeserializer;
 import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateTimeDeserializer;
 import com.fasterxml.jackson.datatype.jsr310.deser.LocalTimeDeserializer;
@@ -35,6 +36,8 @@ public class JacksonConfig {
                         SerializationFeature.WRITE_DATES_AS_TIMESTAMPS,
                         DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES
                 )
+                .serializerByType(Long.class, ToStringSerializer.instance)
+                .serializerByType(Long.TYPE, ToStringSerializer.instance)
                 .serializerByType(
                         LocalDateTime.class,
                         new LocalDateTimeSerializer(DateTimeFormatter.ofPattern(DATE_TIME_PATTERN))

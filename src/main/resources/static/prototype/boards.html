@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="./styles.css">
 </head>
 <body>
+  <div id="boardListApp" v-cloak>
   <header class="app-header boards-header">
     <div class="header-left">
       <a class="header-brand" href="./boards.html" aria-label="MeowKanban 看板列表">
@@ -18,26 +19,25 @@
       </a>
     </div>
     <div class="top-actions header-actions">
-      <a class="button secondary boards-link-button" href="./index.html">进入示例看板</a>
+      <label class="search boards-header-search">
+        <span>搜索</span>
+        <input v-model.trim="query" type="search" placeholder="看板名称或描述">
+      </label>
       <div class="user-menu" aria-label="个人菜单">
         <a class="user-trigger" href="./profile.html" aria-label="个人详情">
-          <span class="avatar rose">我</span>
+          <span class="avatar rose" data-current-user-avatar>我</span>
         </a>
       </div>
     </div>
   </header>
 
-  <main class="boards-page" id="boardListApp" v-cloak>
+  <main class="boards-page">
     <section class="boards-toolbar" aria-label="看板筛选">
       <div>
         <p class="eyebrow">工作区</p>
         <h1>看板</h1>
       </div>
       <div class="boards-controls">
-        <label class="search boards-search">
-          <span>搜索</span>
-          <input v-model.trim="query" type="search" placeholder="看板名称或描述">
-        </label>
         <div class="segmented-control" aria-label="可见性筛选">
           <button
             v-for="item in filters"
@@ -46,7 +46,8 @@
             :class="{ active: filter === item.value }"
             type="button"
             @click="filter = item.value"
-          >{{ item.label }}</button>
+            v-text="item.label"
+          ></button>
         </div>
       </div>
     </section>
@@ -54,37 +55,60 @@
     <section class="boards-summary" aria-label="看板概览">
       <div>
         <span>可访问</span>
-        <strong>{{ boards.length }}</strong>
+        <strong v-text="loading ? '-' : boards.length"></strong>
       </div>
       <div>
         <span>我管理</span>
-        <strong>{{ managedCount }}</strong>
+        <strong v-text="loading ? '-' : managedCount"></strong>
       </div>
       <div>
         <span>只读</span>
-        <strong>{{ viewerCount }}</strong>
+        <strong v-text="loading ? '-' : viewerCount"></strong>
       </div>
     </section>
 
     <section class="board-list" aria-label="可访问看板列表">
+      <template v-if="loading">
+        <article v-for="item in pageSize" :key="item" class="board-row board-row-skeleton" aria-hidden="true">
+          <div class="board-row-main">
+            <div class="board-icon skeleton-block"></div>
+            <div class="board-copy">
+              <div class="board-title-line">
+                <span class="skeleton-line title"></span>
+                <span class="skeleton-pill"></span>
+                <span class="skeleton-pill"></span>
+              </div>
+              <span class="skeleton-line"></span>
+            </div>
+          </div>
+          <div class="board-row-meta">
+            <span class="skeleton-line short"></span>
+            <span class="skeleton-button"></span>
+          </div>
+        </article>
+      </template>
       <article
+        v-else
         v-for="board in filteredBoards"
         :key="board.id"
         class="board-row"
       >
         <div class="board-row-main">
-          <div class="board-icon" :class="board.accent">{{ board.shortName }}</div>
+          <div class="board-icon" :class="[{ 'has-cover': board.coverUrl }, board.accent]">
+            <img v-if="board.coverUrl" :src="board.coverUrl" alt="">
+            <span v-else v-text="board.shortName"></span>
+          </div>
           <div class="board-copy">
             <div class="board-title-line">
-              <h2>{{ board.name }}</h2>
-              <span class="badge" :class="board.visibility === '公开' ? 'normal' : 'blocked'">{{ board.visibility }}</span>
-              <span class="badge" :class="roleClass(board.role)">{{ roleLabel(board.role) }}</span>
+              <h2 v-text="board.name"></h2>
+              <span class="badge" :class="board.visibility === '公开' ? 'normal' : 'blocked'" v-text="board.visibility"></span>
+              <span class="badge" :class="roleClass(board.role)" v-text="roleLabel(board.role)"></span>
             </div>
-            <p>{{ board.description }}</p>
+            <p v-text="board.description"></p>
           </div>
         </div>
         <div class="board-row-meta">
-          <span>{{ board.updatedAt }}</span>
+          <span v-text="board.updatedAt"></span>
           <a class="button primary boards-open-button" :href="board.href">打开</a>
         </div>
       </article>
@@ -95,24 +119,87 @@
       </div>
 
       <div class="board-load-state" v-if="loadError">
-        <span>{{ loadError }}</span>
+        <span v-text="loadError"></span>
         <button class="button secondary" type="button" @click="loadBoards()">重试</button>
       </div>
-      <div class="board-load-state" v-else-if="loading">
-        <span>加载中</span>
-      </div>
       <div class="board-pagination" v-else-if="total > 0">
-        <span>共 {{ total }} 个看板</span>
+        <span>共 <span v-text="total"></span> 个看板</span>
         <div class="board-pagination-actions">
           <button class="button secondary" type="button" :disabled="!canPrevPage" @click="goToPage(pageIndex - 1)">上一页</button>
-          <strong>{{ pageIndex }} / {{ pages }}</strong>
+          <strong><span v-text="pageIndex"></span> / <span v-text="pages"></span></strong>
           <button class="button secondary" type="button" :disabled="!canNextPage" @click="goToPage(pageIndex + 1)">下一页</button>
         </div>
       </div>
     </section>
   </main>
 
+  <button
+    class="board-create-fab"
+    type="button"
+    aria-label="创建看板"
+    title="创建看板"
+    @click="openCreateBoardDialog"
+  >
+    <span aria-hidden="true">+</span>
+  </button>
+
+  <div
+    v-if="createDialogOpen"
+    class="profile-modal-backdrop"
+    role="presentation"
+    @click.self="closeCreateBoardDialog"
+  >
+    <section
+      class="profile-modal board-create-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="createBoardDialogTitle"
+    >
+      <div class="profile-modal-header">
+        <div>
+          <p class="eyebrow">新看板</p>
+          <h2 id="createBoardDialogTitle">创建看板</h2>
+        </div>
+        <button class="profile-modal-close" type="button" aria-label="关闭弹窗" @click="closeCreateBoardDialog">×</button>
+      </div>
+
+      <form class="profile-form board-create-form" @submit.prevent="submitCreateBoard">
+        <label>
+          <span>看板名称</span>
+          <input v-model.trim="createForm.name" type="text" maxlength="40" autocomplete="off" required>
+        </label>
+        <label>
+          <span>可见性</span>
+          <select v-model.number="createForm.visibility">
+            <option :value="0">私有</option>
+            <option :value="1">公开</option>
+          </select>
+        </label>
+        <label class="board-create-cover">
+          <span>封面</span>
+          <input ref="createCoverInput" type="file" accept="image/*" @change="handleCreateCoverChange">
+        </label>
+        <div v-if="createForm.coverPreviewUrl" class="board-create-cover-preview">
+          <img :src="createForm.coverPreviewUrl" alt="看板封面预览">
+          <button class="button secondary" type="button" @click="clearCreateCover">移除封面</button>
+        </div>
+        <label class="board-create-description">
+          <span>描述</span>
+          <textarea v-model.trim="createForm.description" maxlength="120" rows="4" placeholder="填写看板用途、范围或协作说明"></textarea>
+        </label>
+        <p v-if="createError" class="form-message error board-create-message" v-text="createError"></p>
+        <div class="profile-form-actions">
+          <button class="button secondary" type="button" @click="closeCreateBoardDialog">取消</button>
+          <button class="button primary" type="submit" :disabled="createSaving" v-text="createSaving ? '创建中' : '创建看板'"></button>
+        </div>
+      </form>
+    </section>
+  </div>
+  </div>
+
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <script src="./token.js"></script>
+  <script src="./header-user.js"></script>
   <script src="./boards.js"></script>
 </body>
 </html>

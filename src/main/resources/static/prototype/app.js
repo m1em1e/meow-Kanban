@@ -102,8 +102,6 @@ const board = document.querySelector("#board");
 const search = document.querySelector("#taskSearch");
 const drawer = document.querySelector("#taskDrawer");
 const toggleDone = document.querySelector("#toggleDone");
-const appShell = document.querySelector("#appShell");
-const sidebarToggle = document.querySelector("#sidebarToggle");
 const filterToggle = document.querySelector("#filterToggle");
 const filterMenu = document.querySelector("#filterMenu");
 const newSectionName = document.querySelector("#newSectionName");
@@ -182,30 +180,6 @@ function loadSections() {
       task.status = boardSections[0].id;
     }
   });
-}
-
-function getSavedSidebarState() {
-  try {
-    return localStorage.getItem("meowKanban.sidebarCollapsed") === "true";
-  } catch (error) {
-    return false;
-  }
-}
-
-function setSidebarCollapsed(collapsed) {
-  appShell.classList.toggle("sidebar-collapsed", collapsed);
-  document.body.classList.toggle("sidebar-collapsed", collapsed);
-  sidebarToggle.setAttribute("aria-expanded", String(!collapsed));
-
-  const label = collapsed ? "显示侧边栏" : "隐藏侧边栏";
-  sidebarToggle.setAttribute("aria-label", label);
-  sidebarToggle.title = label;
-
-  try {
-    localStorage.setItem("meowKanban.sidebarCollapsed", String(collapsed));
-  } catch (error) {
-    return;
-  }
 }
 
 function priorityLabel(priority) {
@@ -304,18 +278,6 @@ function openDrawer(taskId) {
 function closeDrawer() {
   drawer.classList.remove("open");
   drawer.setAttribute("aria-hidden", "true");
-}
-
-function moveSelected(offset) {
-  const task = tasks.find((item) => item.id === selectedTaskId);
-  if (!task) return;
-
-  const statusIds = getSectionIds();
-  const currentIndex = statusIds.indexOf(task.status);
-  const nextIndex = Math.min(statusIds.length - 1, Math.max(0, currentIndex + offset));
-  task.status = statusIds[nextIndex];
-  renderBoard();
-  openDrawer(task.id);
 }
 
 function bindDropEvents() {
@@ -593,10 +555,6 @@ document.addEventListener("click", (event) => {
   }
 });
 
-sidebarToggle.addEventListener("click", () => {
-  setSidebarCollapsed(!appShell.classList.contains("sidebar-collapsed"));
-});
-
 toggleDone.addEventListener("change", () => {
   hideDone = toggleDone.checked;
   renderBoard();
@@ -623,13 +581,9 @@ newSectionName.addEventListener("keydown", (event) => {
 });
 
 document.querySelector("#closeDrawer").addEventListener("click", closeDrawer);
-document.querySelector("#movePrev").addEventListener("click", () => moveSelected(-1));
-document.querySelector("#moveNext").addEventListener("click", () => moveSelected(1));
-
 drawer.addEventListener("click", (event) => {
   if (event.target === drawer) closeDrawer();
 });
 
 loadSections();
-setSidebarCollapsed(getSavedSidebarState());
 renderBoard();

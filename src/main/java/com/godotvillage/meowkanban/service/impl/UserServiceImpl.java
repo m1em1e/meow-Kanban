@@ -9,18 +9,20 @@ import com.godotvillage.meowkanban.domain.vo.UserProfileVO;
 import com.godotvillage.meowkanban.mapper.UserMapper;
 import com.godotvillage.meowkanban.service.IUserService;
 import org.springframework.beans.BeanUtils;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 @Service
 public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IUserService {
 
     @Override
     public UserProfileVO getUserProfileVO(IdParam param) {
-        if (param == null || param.getId() == null) {
-            throw new BaseException("用户 ID 不能为空");
-        }
-        User user = baseMapper.selectById(param.getId());
+        User user = param == null || param.getId() == null
+                ? getCurrentUser()
+                : baseMapper.selectById(param.getId());
         if (user == null) {
             throw new BaseException("用户不存在");
         }
@@ -40,7 +42,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         user.setNickname(param.getNickname().trim());
         user.setGender(param.getGender() == null ? -1 : param.getGender());
         user.setBirthday(param.getBirthday());
-        user.setAvatarResourceId(param.getAvatarResourceId());
+        if (param.getAvatarResourceId() != null) {
+            user.setAvatarResourceId(param.getAvatarResourceId());
+        }
         updateById(user);
 
         return toUserProfileVO(user);
@@ -55,7 +59,25 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
     private UserProfileVO toUserProfileVO(User user) {
         UserProfileVO userProfileVO = new UserProfileVO();
         BeanUtils.copyProperties(user, userProfileVO);
+        userProfileVO.setJoinedTime(user.getCreatedTime());
         return userProfileVO;
+    }
+
+    private User getCurrentUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return null;
+        }
+
+        String username = authentication.getName();
+        if (!StringUtils.hasText(username) || "anonymousUser".equals(username)) {
+            return null;
+        }
+
+        return lambdaQuery()
+                .eq(User::getUsername, username)
+                .eq(User::getDeleted, 0)
+                .one();
     }
 
 }

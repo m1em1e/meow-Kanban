@@ -3,6 +3,16 @@ const { createApp } = Vue;
 const accentClasses = ["teal", "violet", "amber", "rose"];
 const useMockBoards = window.location.protocol === "file:"
   || window.location.pathname.includes("/prototype/");
+const boardPageDefaults = Object.freeze({
+  pageIndex: 1,
+  pageSize: 10
+});
+
+const createBoardHref = (id) => {
+  const encodedId = encodeURIComponent(id);
+  return useMockBoards ? `./index.html?boardId=${encodedId}` : `/detail/${encodedId}`;
+};
+
 const mockBoards = [
   {
     id: 1,
@@ -129,14 +139,24 @@ createApp({
         { label: "只读", value: "viewer" }
       ],
       boards: [],
-      pageIndex: 1,
-      pageSize: 10,
+      pageIndex: boardPageDefaults.pageIndex,
+      pageSize: boardPageDefaults.pageSize,
       total: 0,
       pages: 0,
       sortTarget: 2,
       sortType: 0,
       loading: false,
       loadError: "",
+      createDialogOpen: false,
+      createSaving: false,
+      createError: "",
+      createForm: {
+        name: "",
+        description: "",
+        visibility: 0,
+        coverFile: null,
+        coverPreviewUrl: ""
+      },
       searchTimer: null
     };
   },
@@ -173,10 +193,14 @@ createApp({
     }
   },
   mounted() {
+    if (!useMockBoards) {
+      window.MeowKanbanAuth?.requireToken();
+    }
     this.loadBoards();
   },
   beforeUnmount() {
     window.clearTimeout(this.searchTimer);
+    this.revokeCreateCoverPreview();
   },
   methods: {
     async loadBoards() {
@@ -238,20 +262,207 @@ createApp({
         params.set("keyword", keyword);
       }
 
-      const response = await fetch(`/api/v1/board/list?${params.toString()}`, {
+      const apiFetch = window.MeowKanbanAuth?.fetch || fetch;
+      const response = await apiFetch(`/api/v1/board/list?${params.toString()}`, {
         headers: { Accept: "application/json" }
       });
 
-      if (!response.ok) {
-        throw new Error("看板加载失败");
-      }
-
-      const result = await response.json();
-      if (result.code !== 1 || !result.data || !Array.isArray(result.data.records)) {
+      const result = await this.readApiResult(response, "看板加载失败");
+      if (!result.data || !Array.isArray(result.data.records)) {
         throw new Error(result.msg || "看板加载失败");
       }
 
       return result.data;
+    },
+    async readApiResult(response, fallbackMessage) {
+      let result = null;
+      let text = "";
+      try {
+        text = await response.text();
+        result = text ? JSON.parse(text) : null;
+      } catch (error) {
+        result = null;
+      }
+
+      if (!response.ok || !result || result.code !== 1) {
+        throw new Error(result?.msg || fallbackMessage);
+      }
+
+      Object.defineProperty(result, "_rawText", {
+        value: text,
+        enumerable: false
+      });
+      return result;
+    },
+    openCreateBoardDialog() {
+      this.createError = "";
+      this.createDialogOpen = true;
+    },
+    closeCreateBoardDialog() {
+      if (this.createSaving) {
+        return;
+      }
+      this.createDialogOpen = false;
+      this.resetCreateForm();
+    },
+    resetCreateForm() {
+      this.revokeCreateCoverPreview();
+      this.createError = "";
+      this.createForm = {
+        name: "",
+        description: "",
+        visibility: 0,
+        coverFile: null,
+        coverPreviewUrl: ""
+      };
+      if (this.$refs.createCoverInput) {
+        this.$refs.createCoverInput.value = "";
+      }
+    },
+    handleCreateCoverChange(event) {
+      const file = event.target.files?.[0] || null;
+      this.createError = "";
+
+      if (!file) {
+        this.clearCreateCover();
+        return;
+      }
+
+      if (!file.type || !file.type.startsWith("image/")) {
+        this.createError = "封面文件必须是图片";
+        event.target.value = "";
+        this.clearCreateCover();
+        return;
+      }
+
+      this.revokeCreateCoverPreview();
+      this.createForm.coverFile = file;
+      this.createForm.coverPreviewUrl = URL.createObjectURL(file);
+    },
+    clearCreateCover() {
+      this.revokeCreateCoverPreview();
+      this.createForm.coverFile = null;
+      this.createForm.coverPreviewUrl = "";
+      if (this.$refs.createCoverInput) {
+        this.$refs.createCoverInput.value = "";
+      }
+    },
+    revokeCreateCoverPreview() {
+      if (this.createForm.coverPreviewUrl) {
+        URL.revokeObjectURL(this.createForm.coverPreviewUrl);
+      }
+    },
+    async submitCreateBoard() {
+      const name = this.createForm.name.trim();
+      const description = this.createForm.description.trim();
+      if (!name) {
+        this.createError = "请输入看板名称";
+        return;
+      }
+
+      this.createSaving = true;
+      this.createError = "";
+
+      try {
+        if (useMockBoards) {
+          this.createMockBoard(name, description);
+        } else {
+          const userId = await this.fetchCurrentUserId();
+          const coverResourceId = await this.uploadCreateCover();
+          await this.createRemoteBoard(name, description, coverResourceId, userId);
+        }
+
+        this.query = "";
+        this.filter = "all";
+        this.pageIndex = 1;
+        this.createDialogOpen = false;
+        this.resetCreateForm();
+        await this.loadBoards();
+      } catch (error) {
+        this.createError = error.message || "看板创建失败";
+      } finally {
+        this.createSaving = false;
+      }
+    },
+    createMockBoard(name, description) {
+      mockBoards.unshift({
+        id: `mock-${Date.now()}`,
+        name,
+        description: description || "新的协作看板。",
+        coverPreviewUrl: this.createForm.coverPreviewUrl,
+        visibility: Number(this.createForm.visibility),
+        role: "owner",
+        updatedAt: "刚刚"
+      });
+    },
+    async uploadCreateCover() {
+      if (!this.createForm.coverFile) {
+        return null;
+      }
+
+      const formData = new FormData();
+      formData.append("file", this.createForm.coverFile);
+
+      const apiFetch = window.MeowKanbanAuth?.fetch || fetch;
+      const response = await apiFetch("/api/v1/resource/upload", {
+        method: "POST",
+        headers: {
+          Accept: "application/json"
+        },
+        body: formData
+      });
+      const result = await this.readApiResult(response, "封面上传失败");
+      const resourceId = this.extractExactDataId(result);
+      if (!resourceId) {
+        throw new Error("封面上传失败");
+      }
+
+      return resourceId;
+    },
+    extractExactDataId(result) {
+      const rawText = result?._rawText || "";
+      const match = rawText.match(/"data"\s*:\s*\{[\s\S]*?"id"\s*:\s*"?([0-9]+)"?/);
+      if (match) {
+        return match[1];
+      }
+
+      return result?.data?.id == null ? "" : String(result.data.id);
+    },
+    async fetchCurrentUserId() {
+      const apiFetch = window.MeowKanbanAuth?.fetch || fetch;
+      const response = await apiFetch("/api/v1/user/profile", {
+        headers: { Accept: "application/json" }
+      });
+      const result = await this.readApiResult(response, "获取当前用户失败");
+      const userId = this.extractExactDataId(result);
+      if (!userId) {
+        throw new Error("获取当前用户失败");
+      }
+
+      return userId;
+    },
+    async createRemoteBoard(name, description, coverResourceId, userId) {
+      const apiFetch = window.MeowKanbanAuth?.fetch || fetch;
+      const response = await apiFetch("/api/v1/board/new", {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          name,
+          description,
+          userId,
+          coverResourceId,
+          visibility: Number(this.createForm.visibility)
+        })
+      });
+
+      if (response.status === 404) {
+        throw new Error("创建看板接口尚未接入");
+      }
+
+      await this.readApiResult(response, "看板创建失败");
     },
     goToPage(pageIndex) {
       const nextPage = Math.max(1, Math.min(pageIndex, this.pages || 1));
@@ -262,26 +473,42 @@ createApp({
       this.loadBoards();
     },
     normalizeBoard(board) {
-      const id = Number(board.id);
+      const id = String(board.id);
       const name = board.name || "未命名看板";
       const description = board.description || "";
       const visibility = Number(board.visibility) === 1 ? "公开" : "私有";
       const role = board.role || "owner";
+      const coverUrl = this.createCoverUrl(board);
 
       return {
         id,
         name,
         description,
+        coverUrl,
         visibility,
         role,
         updatedAt: board.updatedAt || "最近活动",
-        accent: accentClasses[Math.abs(id || 0) % accentClasses.length],
-        href: `/prototype/index.html?boardId=${encodeURIComponent(id)}`,
+        accent: accentClasses[this.accentIndex(id)],
+        href: createBoardHref(id),
         shortName: this.createShortName(name)
       };
     },
     createShortName(name) {
       return Array.from(name.trim() || "看板").slice(0, 2).join("").toUpperCase();
+    },
+    createCoverUrl(board) {
+      if (board.coverPreviewUrl) {
+        return board.coverPreviewUrl;
+      }
+      if (board.coverResourceId) {
+        return `/api/v1/resource/${encodeURIComponent(board.coverResourceId)}`;
+      }
+      return "";
+    },
+    accentIndex(id) {
+      const value = String(id || "0");
+      const lastDigits = value.match(/\d{1,6}$/)?.[0] || "0";
+      return Number(lastDigits) % accentClasses.length;
     },
     roleLabel(role) {
       const labels = {

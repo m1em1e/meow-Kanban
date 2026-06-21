@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MeowKanban 看板详情</title>
+  <link rel="stylesheet" href="/prototype/styles.css" th:href="@{/prototype/styles.css}">
+</head>
+<body>
+  <div id="detailApp" v-cloak th:data-board-id="${boardId}">
+    <header class="app-header">
+      <div class="header-left">
+        <a class="button secondary board-back-button" href="/boards" th:href="@{/boards}" aria-label="返回看板列表">
+          <span>返回</span>
+        </a>
+        <a class="header-brand" href="/boards" th:href="@{/boards}" aria-label="MeowKanban 看板列表">
+          <span class="brand-mark small">M</span>
+          <span>
+            <strong>MeowKanban</strong>
+            <small>{{ boardName }}</small>
+          </span>
+        </a>
+      </div>
+
+      <div class="top-actions header-actions">
+        <div class="search-filter">
+          <label class="search">
+            <span>搜索</span>
+            <input v-model.trim="query" type="search" placeholder="任务、成员或标签">
+          </label>
+          <button
+            class="button secondary filter-trigger"
+            type="button"
+            :aria-expanded="String(filterOpen)"
+            aria-controls="filterMenu"
+            @click="filterOpen = !filterOpen"
+          >筛选</button>
+          <div class="filter-menu" id="filterMenu" :aria-hidden="String(!filterOpen)" :class="{ open: filterOpen }">
+            <button
+              v-for="filter in filters"
+              :key="filter.value"
+              class="filter-option"
+              :class="{ active: activeFilter === filter.value }"
+              type="button"
+              @click="setFilter(filter.value)"
+            >{{ filter.label }}</button>
+            <label class="filter-check">
+              <input v-model="hideDone" type="checkbox">
+              <span>隐藏完成</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="section-manager header-section-manager" aria-label="看板分区管理">
+          <button
+            class="button secondary"
+            type="button"
+            :aria-expanded="String(sectionMenuOpen)"
+            aria-controls="sectionMenu"
+            @click="sectionMenuOpen = !sectionMenuOpen"
+          >添加分区</button>
+          <div class="section-menu" id="sectionMenu" :aria-hidden="String(!sectionMenuOpen)" :class="{ open: sectionMenuOpen }">
+            <label class="section-field">
+              <span>分区名称</span>
+              <input v-model.trim="newSectionName" type="text" placeholder="如：待发布" @keyup.enter="addSection">
+            </label>
+            <button class="button primary" type="button" @click="addSection">创建分区</button>
+          </div>
+        </div>
+
+        <div class="member-menu" aria-label="成员菜单">
+          <button
+            class="member-trigger"
+            type="button"
+            :aria-expanded="String(memberMenuOpen)"
+            aria-controls="memberMenu"
+            title="成员"
+            @click="memberMenuOpen = !memberMenuOpen"
+          >
+            <span class="avatar-stack" aria-hidden="true">
+              <span v-for="member in members.slice(0, 3)" :key="member.name" class="avatar" :class="member.accent">{{ member.shortName }}</span>
+            </span>
+            <span>成员</span>
+          </button>
+          <div class="member-dropdown" id="memberMenu" :aria-hidden="String(!memberMenuOpen)" :class="{ open: memberMenuOpen }">
+            <p class="label">最近登录</p>
+            <div v-for="member in members" :key="member.name" class="member-row">
+              <span class="avatar" :class="member.accent">{{ member.shortName }}</span>
+              <span>{{ member.name }}</span>
+              <small>{{ member.role }} · {{ member.activeAt }}</small>
+            </div>
+            <div class="member-actions">
+              <button class="button secondary" type="button">权限编辑</button>
+              <button class="button primary" type="button">邀请</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="user-menu" aria-label="个人菜单">
+          <button
+            class="user-trigger"
+            type="button"
+            :aria-expanded="String(userMenuOpen)"
+            aria-controls="userMenu"
+            aria-label="打开个人菜单"
+            @click="userMenuOpen = !userMenuOpen"
+          >
+            <span class="avatar rose" data-current-user-avatar>我</span>
+          </button>
+          <div class="user-dropdown" id="userMenu" :aria-hidden="String(!userMenuOpen)" :class="{ open: userMenuOpen }">
+            <a class="user-menu-item" href="/profile" th:href="@{/profile}">编辑用户信息</a>
+            <button class="user-menu-item" type="button">看板介绍</button>
+            <div class="menu-divider" aria-hidden="true"></div>
+            <button class="user-menu-item logout" type="button" @click="logout">登出</button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="app-shell board-shell">
+      <main class="main-content">
+        <section class="board" aria-label="任务看板">
+          <section v-for="section in sections" :key="section.id" class="column" :data-status="section.id">
+            <header>
+              <div class="column-title">
+                <h2 class="editable-section-title" :title="section.name" @dblclick="renameSection(section.id)">{{ section.name }}</h2>
+                <span class="count">{{ tasksBySection(section.id).length }}</span>
+              </div>
+              <div class="column-actions">
+                <button class="column-action" type="button" title="重命名" @click="renameSection(section.id)">改</button>
+                <button class="column-action danger" type="button" title="删除分区" @click="deleteSection(section.id)">删</button>
+              </div>
+            </header>
+
+            <div
+              class="task-list"
+              :class="{ 'drag-over': dragOverSection === section.id }"
+              :data-dropzone="section.id"
+              @dragover.prevent="dragOverSection = section.id"
+              @dragleave="dragOverSection = null"
+              @drop="dropTask(section.id)"
+            >
+              <article
+                v-for="task in tasksBySection(section.id)"
+                :key="task.id"
+                class="task-card"
+                draggable="true"
+                :data-id="task.id"
+                @dragstart="startDrag(task.id)"
+                @dragend="dragOverSection = null"
+                @click="openDrawer(task.id)"
+              >
+                <div class="task-meta">
+                  <span class="badge" :class="task.priority">{{ priorityLabel(task.priority) }}</span>
+                  <span class="badge" :class="{ blocked: task.blocked }" v-if="task.blocked">阻塞</span>
+                  <small>{{ task.code }}</small>
+                </div>
+                <h3>{{ task.title }}</h3>
+                <p>{{ task.description }}</p>
+                <div class="task-footer">
+                  <span class="avatar" :class="task.ownerAccent">{{ task.ownerShortName }}</span>
+                  <span>{{ task.owner }}</span>
+                  <span>{{ task.due }}</span>
+                </div>
+              </article>
+              <p class="task-empty" v-if="tasksBySection(section.id).length === 0">暂无任务</p>
+            </div>
+
+            <button class="column-add-task" type="button" @click="createTask(section.id)">+ 新建任务</button>
+          </section>
+        </section>
+      </main>
+    </div>
+
+    <aside class="drawer" :class="{ open: selectedTask }" :aria-hidden="String(!selectedTask)" aria-label="任务详情" @click.self="closeDrawer">
+      <div class="drawer-panel" v-if="selectedTask">
+        <button class="icon-button close" type="button" aria-label="关闭" @click="closeDrawer">×</button>
+        <p class="eyebrow">{{ selectedTask.code }}</p>
+        <h2>{{ selectedTask.title }}</h2>
+        <p class="drawer-desc">{{ selectedTask.description }}</p>
+        <dl class="detail-grid">
+          <div>
+            <dt>负责人</dt>
+            <dd>{{ selectedTask.owner }}</dd>
+          </div>
+          <div>
+            <dt>截止</dt>
+            <dd>{{ selectedTask.due }}</dd>
+          </div>
+          <div>
+            <dt>优先级</dt>
+            <dd>{{ priorityLabel(selectedTask.priority) }}</dd>
+          </div>
+          <div>
+            <dt>状态</dt>
+            <dd>{{ sectionName(selectedTask.status) }}</dd>
+          </div>
+        </dl>
+        <div>
+          <p class="label">标签</p>
+          <div class="drawer-tags">
+            <span v-for="tag in selectedTask.tags" :key="tag" class="badge">{{ tag }}</span>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <script src="/prototype/token.js" th:src="@{/prototype/token.js}"></script>
+  <script src="/prototype/header-user.js" th:src="@{/prototype/header-user.js}"></script>
+  <script src="/prototype/detail.js" th:src="@{/prototype/detail.js}"></script>
+</body>
+</html>

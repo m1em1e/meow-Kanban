@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>500 服务异常 - MeowKanban</title>
+  <link rel="stylesheet" href="/prototype/styles.css" th:href="@{/prototype/styles.css}">
+</head>
+<body>
+  <main class="error-page">
+    <section class="error-panel" aria-labelledby="errorTitle">
+      <a class="header-brand error-brand" href="/boards" th:href="@{/boards}" aria-label="MeowKanban">
+        <span class="brand-mark small">M</span>
+        <span>
+          <strong>MeowKanban</strong>
+          <small>轻量项目看板</small>
+        </span>
+      </a>
+      <p class="error-code">500</p>
+      <h1 id="errorTitle">服务暂时不可用</h1>
+      <p class="error-desc">服务器处理请求时出现异常，请稍后重试。</p>
+      <div class="error-actions">
+        <a class="button primary" href="/boards" th:href="@{/boards}">返回看板</a>
+        <button class="button secondary" type="button" onclick="window.location.reload()">刷新页面</button>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

@@ -19,10 +19,17 @@ public class AutoMetaObjectHandler implements MetaObjectHandler {
         this.setFieldValByName("id", IdUtil.getSnowflakeNextId(), metaObject);
         this.setFieldValByName("createdTime", LocalDateTime.now(), metaObject);
         this.setFieldValByName("updatedTime", LocalDateTime.now(), metaObject);
+        fillDeletedIfPresent(metaObject);
     }
 
     @Override
     public void updateFill(MetaObject metaObject) {
         this.setFieldValByName("updatedTime", LocalDateTime.now(), metaObject);
+    }
+
+    private void fillDeletedIfPresent(MetaObject metaObject) {
+        if (metaObject.hasSetter("deleted") && metaObject.getValue("deleted") == null) {
+            this.setFieldValByName("deleted", 0, metaObject);
+        }
     }
 }

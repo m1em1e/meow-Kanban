@@ -1,56 +1,103 @@
 package com.godotvillage.meowkanban.common.config;
 
+import com.godotvillage.meowkanban.common.security.JwtAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.servlet.util.matcher.PathPatternRequestMatcher;
+
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
+	private final JwtAuthenticationFilter jwtAuthenticationFilter;
+
+	public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter) {
+		this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+	}
+
+	private static final String[] PUBLIC_MATCHERS = {
+			"/login",
+			"/register",
+			"/api/v1/auth/login",
+			"/api/v1/auth/register",
+			"/prototype/styles.css",
+			"/prototype/token.js",
+			"/prototype/auth.js",
+			"/prototype/register.js",
+			"/favicon.ico",
+			"/error"
+	};
+
+	private static final String[] PAGE_MATCHERS = {
+			"/",
+			"/boards",
+			"/profile",
+			"/profile/**",
+			"/detail/**"
+	};
+
+	private static final String[] AUTHENTICATED_STATIC_MATCHERS = {
+			"/prototype/index.html",
+			"/prototype/app.js",
+			"/prototype/boards.js",
+			"/prototype/detail.js",
+			"/prototype/profile.js"
+	};
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http
                 .csrf(AbstractHttpConfigurer::disable)
-                .formLogin(form -> form
-                        .loginPage("/login")
-                        .loginProcessingUrl("/api/v1/auth/login")
-                        .defaultSuccessUrl("/boards", true)
-                        .failureUrl("/login?error")
-                        .permitAll())
+                .formLogin(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
+				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .logout(logout -> logout
                         .logoutUrl("/api/v1/auth/logout")
-                        .logoutSuccessUrl("/login")
-                        .invalidateHttpSession(true)
-                        .deleteCookies("JSESSIONID"))
+						.addLogoutHandler((request, response, authentication) -> {
+							SecurityContextHolder.clearContext();
+							ResponseCookie tokenCookie = ResponseCookie.from(JwtAuthenticationFilter.TOKEN_COOKIE_NAME, "")
+									.path("/")
+									.maxAge(0)
+									.sameSite("Lax")
+									.build();
+							response.addHeader(HttpHeaders.SET_COOKIE, tokenCookie.toString());
+						})
+                        .logoutSuccessHandler((request, response, authentication) -> {
+							response.setStatus(200);
+							response.setContentType("application/json;charset=UTF-8");
+							response.getWriter().write("{\"code\":1,\"msg\":\"退出成功\"}");
+						}))
                 .exceptionHandling(exception -> exception
-                        .authenticationEntryPoint(authenticationEntryPoint()))
+						.defaultAuthenticationEntryPointFor(
+								apiAuthenticationEntryPoint(),
+								PathPatternRequestMatcher.withDefaults().matcher("/api/**")
+						)
+                        .authenticationEntryPoint(pageAuthenticationEntryPoint()))
                 .authorizeHttpRequests(authorize -> authorize
-						.requestMatchers(
-								"/login",
-								"/register",
-								"/api/v1/auth/login",
-								"/api/v1/auth/register",
-								"/prototype/styles.css",
-								"/prototype/auth.js",
-								"/prototype/register.js",
-								"/prototype/boards.js",
-								"/favicon.ico",
-								"/error"
-						).permitAll()
-						.requestMatchers("/boards").authenticated()
-						.requestMatchers("/api/**").authenticated()
-						.anyRequest().authenticated()
+							.requestMatchers(PUBLIC_MATCHERS).permitAll()
+							.requestMatchers(PAGE_MATCHERS).authenticated()
+							.requestMatchers(AUTHENTICATED_STATIC_MATCHERS).authenticated()
+							.requestMatchers("/api/**").authenticated()
+							.anyRequest().authenticated()
                 )
+				.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
 
@@ -65,16 +112,22 @@ public class SecurityConfig {
 	}
 
 	@Bean
-	public AuthenticationEntryPoint authenticationEntryPoint() {
+	public AuthenticationEntryPoint apiAuthenticationEntryPoint() {
 		return (request, response, authException) -> {
-			String accept = request.getHeader("Accept");
-			if (accept != null && accept.contains("application/json")) {
-				response.setStatus(401);
-				response.setContentType("application/json;charset=UTF-8");
-				response.getWriter().write("{\"code\":401,\"msg\":\"请先登录\"}");
-				return;
+			response.setStatus(401);
+			response.setContentType("application/json;charset=UTF-8");
+			response.getWriter().write("{\"code\":401,\"msg\":\"请先登录\"}");
+		};
+	}
+
+	@Bean
+	public AuthenticationEntryPoint pageAuthenticationEntryPoint() {
+		return (request, response, authException) -> {
+			String target = request.getRequestURI();
+			if (request.getQueryString() != null) {
+				target += "?" + request.getQueryString();
 			}
-			response.sendRedirect("/login");
+			response.sendRedirect("/login?redirect=" + URLEncoder.encode(target, StandardCharsets.UTF_8));
 		};
 	}
 }

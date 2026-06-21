@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>401 未登录 - MeowKanban</title>
+  <link rel="stylesheet" href="/prototype/styles.css" th:href="@{/prototype/styles.css}">
+</head>
+<body>
+  <main class="error-page">
+    <section class="error-panel" aria-labelledby="errorTitle">
+      <a class="header-brand error-brand" href="/boards" th:href="@{/boards}" aria-label="MeowKanban">
+        <span class="brand-mark small">M</span>
+        <span>
+          <strong>MeowKanban</strong>
+          <small>轻量项目看板</small>
+        </span>
+      </a>
+      <p class="error-code">401</p>
+      <h1 id="errorTitle">需要登录</h1>
+      <p class="error-desc">当前页面需要登录后访问，请先登录账号。</p>
+      <div class="error-actions">
+        <a class="button primary" href="/login" th:href="@{/login}">去登录</a>
+        <a class="button secondary" href="/boards" th:href="@{/boards}">返回看板</a>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

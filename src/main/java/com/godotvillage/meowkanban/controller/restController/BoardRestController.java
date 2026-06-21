@@ -5,12 +5,11 @@ import com.godotvillage.meowkanban.common.result.Result;
 import com.godotvillage.meowkanban.common.result.PageResult;
 import com.godotvillage.meowkanban.domain.param.BoardInfoQueryParam;
 import com.godotvillage.meowkanban.domain.param.IdParam;
+import com.godotvillage.meowkanban.domain.param.NewBoardParam;
 import com.godotvillage.meowkanban.domain.vo.BoardInfoVO;
 import com.godotvillage.meowkanban.service.IBoardService;
 import jakarta.annotation.Resource;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -29,6 +28,12 @@ public class BoardRestController {
     @GetMapping("/recent")
     public Result<List<BoardInfoVO>> recent(IdParam param) {
         return Result.success(boardService.listRecentParticipatedBoards(param));
+    }
+
+    @PostMapping("/new")
+    public Result newBoard(@RequestBody NewBoardParam param) {
+        boardService.newBoard(param);
+        return Result.success();
     }
 
 }

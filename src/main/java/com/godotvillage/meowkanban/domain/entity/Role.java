@@ -23,7 +23,7 @@ public class Role {
 
     private String description;
 
-    private String status;
+    private Integer status;
 
     private Integer sortOrder;
 

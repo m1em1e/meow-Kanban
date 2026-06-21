@@ -11,7 +11,7 @@
         WHERE ur.user_id = #{userId}
           AND ur.deleted = 0
           AND r.deleted = 0
-          AND r.status = 'active'
+          AND r.status = 1
         ORDER BY r.sort_order ASC, r.id ASC
     </select>
 

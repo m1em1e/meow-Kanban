@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>403 无权限 - MeowKanban</title>
+  <link rel="stylesheet" href="/prototype/styles.css" th:href="@{/prototype/styles.css}">
+</head>
+<body>
+  <main class="error-page">
+    <section class="error-panel" aria-labelledby="errorTitle">
+      <a class="header-brand error-brand" href="/boards" th:href="@{/boards}" aria-label="MeowKanban">
+        <span class="brand-mark small">M</span>
+        <span>
+          <strong>MeowKanban</strong>
+          <small>轻量项目看板</small>
+        </span>
+      </a>
+      <p class="error-code">403</p>
+      <h1 id="errorTitle">没有访问权限</h1>
+      <p class="error-desc">当前账号没有权限访问该内容，请切换账号或返回看板。</p>
+      <div class="error-actions">
+        <a class="button primary" href="/boards" th:href="@{/boards}">返回看板</a>
+        <a class="button secondary" href="/profile" th:href="@{/profile}">个人详情</a>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

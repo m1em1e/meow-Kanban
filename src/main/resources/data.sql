@@ -13,7 +13,7 @@ INSERT INTO mk_user (
   'BCrypt',
   '管理员',
   'admin@meowkanban.local',
-  'active'
+  1
 ) ON CONFLICT(id) DO UPDATE SET
   password = excluded.password,
   salt = excluded.salt

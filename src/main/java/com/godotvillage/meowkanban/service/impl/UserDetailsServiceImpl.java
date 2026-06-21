@@ -15,7 +15,7 @@ import java.util.List;
 @Service
 public class UserDetailsServiceImpl implements UserDetailsService {
 
-    private static final String ACTIVE_STATUS = "active";
+    private static final Integer ACTIVE_STATUS = 1;
 
 	@Resource
     private UserMapper userMapper;
@@ -38,7 +38,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
                 .withUsername(user.getUsername())
                 .password(user.getPassword())
                 .authorities(roleCodes.toArray(String[]::new))
-                .disabled(!ACTIVE_STATUS.equalsIgnoreCase(user.getStatus()))
+                .disabled(!ACTIVE_STATUS.equals(user.getStatus()))
                 .accountExpired(false)
                 .accountLocked(false)
                 .credentialsExpired(false)

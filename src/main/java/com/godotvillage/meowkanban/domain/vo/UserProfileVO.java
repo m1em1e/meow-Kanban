@@ -3,6 +3,7 @@ package com.godotvillage.meowkanban.domain.vo;
 import lombok.Data;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Data
 public class UserProfileVO {
@@ -19,5 +20,9 @@ public class UserProfileVO {
 
     private LocalDate birthday;
 
-    private String status;
+    private Long avatarResourceId;
+
+    private LocalDateTime joinedTime;
+
+    private Integer status;
 }

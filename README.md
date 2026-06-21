@@ -174,7 +174,7 @@ http://localhost:8080/prototype/index.html
 
 - 后端已具备 Spring Boot 启动类、统一返回结果、基础异常和全局异常处理等公共结构。
 - 已引入 Spring Web、Thymeleaf、Validation、Spring Security、MyBatis-Plus、SQLite JDBC 等基础依赖。
-- 已有 SQLite 初始化脚本 `schema.sql` 和 `data.sql`，默认数据库路径配置在 `application.yaml` 中。
+- 已有 SQLite 初始化脚本 `schema.sql` 和 `data.sql`，默认数据库路径配置在 `application.yaml` 中；应用启动时会执行幂等建表脚本，默认数据只在首次初始化时写入。
 - 已有 `/login`、`/register` 页面入口和对应 Thymeleaf 模板。
 - 前端已有静态看板原型，但任务数据仍写在前端 JavaScript 中。
 - 用户认证、任务 API、权限控制、真实业务服务层等能力仍处于开发中。

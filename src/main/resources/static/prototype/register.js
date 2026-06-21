@@ -64,6 +64,26 @@ function updatePasswordMessage() {
   return false;
 }
 
+function showRegisterMessage(message, type = "error") {
+  passwordMessage.textContent = message;
+  passwordMessage.className = `form-message ${type}`;
+}
+
+async function readRegisterResult(response) {
+  let result = null;
+  try {
+    result = await response.json();
+  } catch (error) {
+    result = null;
+  }
+
+  if (!response.ok || !result || result.code !== 1) {
+    throw new Error(result?.msg || "注册失败");
+  }
+
+  return result;
+}
+
 document.querySelectorAll("[data-next]").forEach((button) => {
   button.addEventListener("click", () => setStep(currentStep + 1));
 });
@@ -93,23 +113,21 @@ document.querySelector("#finishRegister").addEventListener("click", async () => 
     password: registerPassword.value
   };
 
-  const response = await fetch("/api/v1/auth/register", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Accept": "application/json"
-    },
-    body: JSON.stringify(payload)
-  });
+  try {
+    const response = await fetch("/api/v1/auth/register", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+      },
+      body: JSON.stringify(payload)
+    });
 
-  const result = await response.json();
-  if (response.ok && result.code === 1) {
+    await readRegisterResult(response);
     window.location.href = "/login?registered";
-    return;
+  } catch (error) {
+    showRegisterMessage(error.message || "注册失败");
   }
-
-  passwordMessage.textContent = result.msg || "注册失败";
-  passwordMessage.className = "form-message error";
 });
 
 registerPassword.addEventListener("input", updatePasswordMessage);

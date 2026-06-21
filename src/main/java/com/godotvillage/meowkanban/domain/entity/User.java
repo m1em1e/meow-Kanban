@@ -34,7 +34,7 @@ public class User {
 
     private Long avatarResourceId;
 
-    private String status;
+    private Integer status;
 
     private LocalDateTime lastLoginTime;
 

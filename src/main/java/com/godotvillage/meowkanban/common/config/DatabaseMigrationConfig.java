@@ -1,10 +1,13 @@
 package com.godotvillage.meowkanban.common.config;
 
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.JdbcTemplate;
 
+import javax.sql.DataSource;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -14,9 +17,13 @@ import java.util.stream.Collectors;
 @Configuration
 public class DatabaseMigrationConfig {
 
+    private static final String DEFAULT_DATA_INIT_KEY = "default-data-v1";
+
     @Bean
-    public ApplicationRunner userTableMigrationRunner(JdbcTemplate jdbcTemplate) {
+    public ApplicationRunner databaseInitializationRunner(DataSource dataSource, JdbcTemplate jdbcTemplate) {
         return args -> {
+            runScript(dataSource, "schema.sql");
+
             Set<String> userColumns = jdbcTemplate.queryForList("PRAGMA table_info(mk_user)")
                     .stream()
                     .map(this::getColumnName)
@@ -25,13 +32,52 @@ public class DatabaseMigrationConfig {
             addColumnIfMissing(jdbcTemplate, userColumns, "gender", "ALTER TABLE mk_user ADD COLUMN gender INTEGER NOT NULL DEFAULT -1");
             addColumnIfMissing(jdbcTemplate, userColumns, "birthday", "ALTER TABLE mk_user ADD COLUMN birthday DATE");
             jdbcTemplate.update("UPDATE mk_user SET gender = -1 WHERE gender IS NULL");
+            migrateStatusColumn(jdbcTemplate, "mk_user");
+            migrateStatusColumn(jdbcTemplate, "mk_role");
+
+            initializeDefaultDataIfNeeded(dataSource, jdbcTemplate);
         };
+    }
+
+    private void runScript(DataSource dataSource, String scriptPath) {
+        ResourceDatabasePopulator populator = new ResourceDatabasePopulator(new ClassPathResource(scriptPath));
+        populator.execute(dataSource);
+    }
+
+    private void initializeDefaultDataIfNeeded(DataSource dataSource, JdbcTemplate jdbcTemplate) {
+        Long initializedCount = jdbcTemplate.queryForObject(
+                "SELECT COUNT(1) FROM mk_database_init WHERE init_key = ?",
+                Long.class,
+                DEFAULT_DATA_INIT_KEY);
+
+        if (initializedCount != null && initializedCount > 0) {
+            return;
+        }
+
+        Long userCount = jdbcTemplate.queryForObject("SELECT COUNT(1) FROM mk_user", Long.class);
+        if (userCount != null && userCount > 0) {
+            markDefaultDataInitialized(jdbcTemplate);
+            return;
+        }
+
+        runScript(dataSource, "data.sql");
+        markDefaultDataInitialized(jdbcTemplate);
+    }
+
+    private void markDefaultDataInitialized(JdbcTemplate jdbcTemplate) {
+        jdbcTemplate.update("INSERT OR IGNORE INTO mk_database_init (init_key) VALUES (?)", DEFAULT_DATA_INIT_KEY);
     }
 
     private void addColumnIfMissing(JdbcTemplate jdbcTemplate, Set<String> columns, String column, String sql) {
         if (!columns.contains(column)) {
             jdbcTemplate.execute(sql);
         }
+    }
+
+    private void migrateStatusColumn(JdbcTemplate jdbcTemplate, String tableName) {
+        jdbcTemplate.update("UPDATE " + tableName + " SET status = 1 WHERE status = 'active'");
+        jdbcTemplate.update("UPDATE " + tableName + " SET status = 0 WHERE status = 'disabled'");
+        jdbcTemplate.update("UPDATE " + tableName + " SET status = 1 WHERE status IS NULL");
     }
 
     private String getColumnName(Map<String, Object> row) {

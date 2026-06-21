@@ -1,15 +1,15 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>MeowKanban 个人详情</title>
-  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="/prototype/styles.css" th:href="@{/prototype/styles.css}">
 </head>
 <body>
   <header class="app-header boards-header">
     <div class="header-left">
-      <a class="header-brand" href="./boards.html" aria-label="MeowKanban 看板列表">
+      <a class="header-brand" href="/boards" th:href="@{/boards}" aria-label="MeowKanban 看板列表">
         <span class="brand-mark small">M</span>
         <span>
           <strong>MeowKanban</strong>
@@ -18,16 +18,16 @@
       </a>
     </div>
     <div class="top-actions header-actions">
-      <a class="button secondary boards-link-button" href="./boards.html">看板列表</a>
+      <a class="button secondary boards-link-button" href="/boards" th:href="@{/boards}">看板列表</a>
       <div class="user-menu" aria-label="个人菜单">
-        <a class="user-trigger" href="./profile.html" aria-label="个人详情">
+        <a class="user-trigger" href="/profile" th:href="@{/profile}" aria-label="个人详情">
           <span class="avatar rose" data-current-user-avatar>我</span>
         </a>
       </div>
     </div>
   </header>
 
-  <main class="profile-page" id="profileApp" v-cloak data-user-id="1" data-current-user-id="1">
+  <main class="profile-page" id="profileApp" v-cloak th:data-user-id="${userId}" th:data-current-user-id="${currentUserId}">
     <aside class="profile-sidebar" aria-label="个人基本信息">
       <div class="profile-identity">
         <button
@@ -39,7 +39,7 @@
           @click="openAvatarPicker"
         >
           <img v-if="user.avatarUrl" class="profile-avatar-image" :src="user.avatarUrl" alt="">
-          <span v-else class="profile-avatar-text">{{ user.initial }}</span>
+          <span v-else class="profile-avatar-text" v-text="profileLoading ? '' : user.initial"></span>
           <span v-if="canEditAvatar" class="profile-avatar-overlay" aria-hidden="true">
             <svg viewBox="0 0 24 24" focusable="false">
               <path d="M8.5 7 10 5h4l1.5 2H18a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h2.5Z"></path>
@@ -50,23 +50,25 @@
         <input ref="avatarInput" class="profile-avatar-input" type="file" accept="image/*" @change="handleAvatarChange">
         <div>
           <p class="eyebrow">个人详情</p>
-          <h1>{{ user.name }}</h1>
+          <h1 v-text="profileLoading ? '加载中' : user.name"></h1>
         </div>
       </div>
 
       <dl class="profile-fields">
         <div v-for="field in profileFields" :key="field.label">
-          <dt>{{ field.label }}</dt>
-          <dd>{{ field.value }}</dd>
+          <dt v-text="field.label"></dt>
+          <dd v-text="profileLoading ? '-' : field.value"></dd>
         </div>
       </dl>
 
       <div class="profile-stats" aria-label="个人统计">
         <div v-for="stat in stats" :key="stat.label">
-          <span>{{ stat.label }}</span>
-          <strong>{{ stat.value }}</strong>
+          <span v-text="stat.label"></span>
+          <strong v-text="stat.value"></strong>
         </div>
       </div>
+
+      <p class="form-message error" v-if="profileError" v-text="profileError"></p>
 
       <div class="profile-actions">
         <button class="button primary" type="button" @click="openProfileDialog">编辑资料</button>
@@ -81,30 +83,59 @@
             <p class="eyebrow">我的看板</p>
             <h2>近期参与</h2>
           </div>
-          <a class="button secondary boards-link-button" href="./boards.html">全部看板</a>
+          <a class="button secondary boards-link-button" href="/boards" th:href="@{/boards}">全部看板</a>
         </div>
 
         <div class="profile-board-list">
-          <article class="profile-board-row" v-for="board in boards" :key="board.id">
-            <div class="board-row-main">
-              <div class="board-icon" :class="[{ 'has-cover': board.coverUrl }, board.accent]">
-                <img v-if="board.coverUrl" :src="board.coverUrl" alt="">
-                <span v-else>{{ board.shortName }}</span>
-              </div>
-              <div class="board-copy">
-                <div class="board-title-line">
-                  <h3>{{ board.name }}</h3>
-                  <span class="badge" :class="board.statusClass">{{ board.status }}</span>
-                  <span class="badge" :class="roleClass(board.role)">{{ roleLabel(board.role) }}</span>
+          <template v-if="boardsLoading">
+            <article v-for="item in 3" :key="item" class="profile-board-row board-row-skeleton" aria-hidden="true">
+              <div class="board-row-main">
+                <div class="board-icon skeleton-block"></div>
+                <div class="board-copy">
+                  <div class="board-title-line">
+                    <span class="skeleton-line title"></span>
+                    <span class="skeleton-pill"></span>
+                    <span class="skeleton-pill"></span>
+                  </div>
+                  <span class="skeleton-line"></span>
                 </div>
-                <p>{{ board.description }}</p>
               </div>
-            </div>
-            <div class="profile-board-meta">
-              <span>{{ board.updatedAt }}</span>
-              <a class="button primary boards-open-button" :href="board.href">打开</a>
-            </div>
-          </article>
+              <div class="profile-board-meta">
+                <span class="skeleton-line short"></span>
+                <span class="skeleton-button"></span>
+              </div>
+            </article>
+          </template>
+          <template v-else>
+            <article class="profile-board-row" v-for="board in boards" :key="board.id">
+              <div class="board-row-main">
+                <div class="board-icon" :class="[{ 'has-cover': board.coverUrl }, board.accent]">
+                  <img v-if="board.coverUrl" :src="board.coverUrl" alt="">
+                  <span v-else v-text="board.shortName"></span>
+                </div>
+                <div class="board-copy">
+                  <div class="board-title-line">
+                    <h3 v-text="board.name"></h3>
+                    <span class="badge" :class="board.statusClass" v-text="board.status"></span>
+                    <span class="badge" :class="roleClass(board.role)" v-text="roleLabel(board.role)"></span>
+                  </div>
+                  <p v-text="board.description"></p>
+                </div>
+              </div>
+              <div class="profile-board-meta">
+                <span v-text="board.updatedAt"></span>
+                <a class="button primary boards-open-button" :href="board.href">打开</a>
+              </div>
+            </article>
+          </template>
+          <div class="board-empty" v-if="!boardsLoading && !boardsError && boards.length === 0">
+            <strong>暂无看板</strong>
+            <span>该用户最近还没有参与看板。</span>
+          </div>
+          <div class="board-load-state" v-if="boardsError">
+            <span v-text="boardsError"></span>
+            <button class="button secondary" type="button" @click="loadBoards">重试</button>
+          </div>
         </div>
       </section>
 
@@ -122,22 +153,45 @@
               :class="{ active: activityFilter === item.value }"
               type="button"
               @click="activityFilter = item.value"
-            >{{ item.label }}</button>
+              v-text="item.label"
+            ></button>
           </div>
         </div>
 
         <ol class="activity-list">
-          <li v-for="activity in filteredActivities" :key="activity.id">
-            <span class="activity-marker" :class="activity.type"></span>
-            <div>
-              <div class="activity-line">
-                <strong>{{ activity.action }}</strong>
-                <span>{{ activity.time }}</span>
+          <template v-if="activitiesLoading">
+            <li v-for="item in 5" :key="item" class="activity-skeleton" aria-hidden="true">
+              <span class="activity-marker"></span>
+              <div>
+                <div class="activity-line">
+                  <span class="skeleton-line title"></span>
+                  <span class="skeleton-line short"></span>
+                </div>
+                <span class="skeleton-line"></span>
               </div>
-              <p>{{ activity.detail }}</p>
-            </div>
-          </li>
+            </li>
+          </template>
+          <template v-else>
+            <li v-for="activity in filteredActivities" :key="activity.id">
+              <span class="activity-marker" :class="activity.type"></span>
+              <div>
+                <div class="activity-line">
+                  <strong v-text="activity.action"></strong>
+                  <span v-text="activity.time"></span>
+                </div>
+                <p v-text="activity.detail"></p>
+              </div>
+            </li>
+          </template>
         </ol>
+        <div class="board-empty" v-if="!activitiesLoading && !activitiesError && filteredActivities.length === 0">
+          <strong>暂无操作记录</strong>
+          <span>该用户最近还没有可展示的操作记录。</span>
+        </div>
+        <div class="board-load-state" v-if="activitiesError">
+          <span v-text="activitiesError"></span>
+          <button class="button secondary" type="button" @click="loadActivities">重试</button>
+        </div>
       </section>
     </section>
 
@@ -155,10 +209,8 @@
       >
         <div class="profile-modal-header">
           <div>
-            <p class="eyebrow">{{ activeDialog === 'profile' ? '个人资料' : '账号设置' }}</p>
-            <h2 :id="activeDialog === 'profile' ? 'profileDialogTitle' : 'settingsDialogTitle'">
-              {{ activeDialog === 'profile' ? '编辑资料' : '账号设置' }}
-            </h2>
+            <p class="eyebrow" v-text="activeDialog === 'profile' ? '个人资料' : '账号设置'"></p>
+            <h2 :id="activeDialog === 'profile' ? 'profileDialogTitle' : 'settingsDialogTitle'" v-text="activeDialog === 'profile' ? '编辑资料' : '账号设置'"></h2>
           </div>
           <button class="profile-modal-close" type="button" aria-label="关闭弹窗" @click="closeDialog">×</button>
         </div>
@@ -217,8 +269,8 @@
   </main>
 
   <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
-  <script src="./token.js"></script>
-  <script src="./header-user.js"></script>
-  <script src="./profile.js"></script>
+  <script src="/prototype/token.js" th:src="@{/prototype/token.js}"></script>
+  <script src="/prototype/header-user.js" th:src="@{/prototype/header-user.js}"></script>
+  <script src="/prototype/profile.js" th:src="@{/prototype/profile.js}"></script>
 </body>
 </html>

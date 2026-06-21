@@ -3,6 +3,7 @@ package com.godotvillage.meowkanban.service.impl;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.godotvillage.meowkanban.common.exception.BaseException;
 import com.godotvillage.meowkanban.common.exception.LoginFailedException;
+import com.godotvillage.meowkanban.common.security.JwtTokenProvider;
 import com.godotvillage.meowkanban.domain.entity.Role;
 import com.godotvillage.meowkanban.domain.entity.User;
 import com.godotvillage.meowkanban.domain.entity.UserRole;
@@ -31,7 +32,7 @@ import java.util.List;
 @Service
 public class AuthServiceImpl implements IAuthService {
 
-    private static final String ACTIVE_STATUS = "active";
+    private static final Integer ACTIVE_STATUS = 1;
     private static final String DEFAULT_ROLE_CODE = "ROLE_USER";
 
     @Resource
@@ -44,6 +45,8 @@ public class AuthServiceImpl implements IAuthService {
     private PasswordEncoder passwordEncoder;
     @Resource
     private AuthenticationManager authenticationManager;
+    @Resource
+    private JwtTokenProvider jwtTokenProvider;
 
     @Override
     @Transactional
@@ -113,6 +116,7 @@ public class AuthServiceImpl implements IAuthService {
         List<String> roles = roleMapper.selectRoleCodesByUserId(user.getId());
 
         LoginVO loginVO = new LoginVO();
+        loginVO.setToken(jwtTokenProvider.generateToken(user, roles));
         loginVO.setUser(toUserProfile(user));
         loginVO.setRoles(roles);
         return loginVO;
@@ -126,6 +130,8 @@ public class AuthServiceImpl implements IAuthService {
         profileVO.setEmail(user.getEmail());
         profileVO.setGender(user.getGender());
         profileVO.setBirthday(user.getBirthday());
+        profileVO.setAvatarResourceId(user.getAvatarResourceId());
+        profileVO.setJoinedTime(user.getCreatedTime());
         profileVO.setStatus(user.getStatus());
         return profileVO;
     }

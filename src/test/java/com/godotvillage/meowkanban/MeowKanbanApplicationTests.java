@@ -66,8 +66,10 @@ class MeowKanbanApplicationTests {
     }
 
     @Test
-    void listBoardInfoUsesDefaultPagination() {
+    void listBoardInfoUsesClientPagination() {
         BoardInfoQueryParam param = new BoardInfoQueryParam();
+        param.setPageIndex(1);
+        param.setPageSize(10);
 
         PageResult<BoardInfoVO> result = boardService.listBoardInfo(param);
 

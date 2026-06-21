@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS mk_user (
   gender INTEGER NOT NULL DEFAULT -1,
   birthday DATE,
   avatar_resource_id INTEGER,
-  status VARCHAR(20) NOT NULL DEFAULT 'active',
+  status INTEGER NOT NULL DEFAULT 1,
   last_login_time DATETIME,
   created_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS mk_role (
   role_code VARCHAR(50) NOT NULL,
   role_name VARCHAR(50) NOT NULL,
   description VARCHAR(255),
-  status VARCHAR(20) NOT NULL DEFAULT 'active',
+  status INTEGER NOT NULL DEFAULT 1,
   sort_order INTEGER NOT NULL DEFAULT 0,
   created_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -243,3 +243,11 @@ CREATE TABLE IF NOT EXISTS mk_user_preference (
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS uk_mk_user_preference_user_key ON mk_user_preference(user_id, preference_key);
+
+CREATE TABLE IF NOT EXISTS mk_database_init (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  init_key VARCHAR(100) NOT NULL,
+  created_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS uk_mk_database_init_key ON mk_database_init(init_key);
