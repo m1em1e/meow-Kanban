@@ -3,6 +3,7 @@ package com.godotvillage.meowkanban.controller.restController;
 import com.godotvillage.meowkanban.common.result.Result;
 import com.godotvillage.meowkanban.common.security.JwtAuthenticationFilter;
 import com.godotvillage.meowkanban.domain.param.LoginParam;
+import com.godotvillage.meowkanban.domain.param.MailCaptchaSendParam;
 import com.godotvillage.meowkanban.domain.param.RegisterParam;
 import com.godotvillage.meowkanban.domain.vo.LoginVO;
 import com.godotvillage.meowkanban.domain.vo.UserProfileVO;
@@ -27,6 +28,12 @@ public class AuthRestController {
     @PostMapping("/register")
     public Result<UserProfileVO> register(@Valid @RequestBody RegisterParam param) {
         return Result.success(authService.register(param));
+    }
+
+    @PostMapping("/mail-captcha/send")
+    public Result<Void> sendMailCaptcha(@Valid @RequestBody MailCaptchaSendParam param) {
+        authService.sendMailCaptcha(param);
+        return Result.success();
     }
 
     @PostMapping("/login")

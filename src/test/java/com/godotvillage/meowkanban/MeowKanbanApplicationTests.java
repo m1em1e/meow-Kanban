@@ -2,6 +2,7 @@ package com.godotvillage.meowkanban;
 
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.godotvillage.meowkanban.common.result.PageResult;
+import com.godotvillage.meowkanban.domain.entity.MailCaptcha;
 import com.godotvillage.meowkanban.domain.entity.User;
 import com.godotvillage.meowkanban.domain.param.BoardInfoQueryParam;
 import com.godotvillage.meowkanban.domain.param.IdParam;
@@ -13,6 +14,7 @@ import com.godotvillage.meowkanban.domain.vo.FileResourceContentVO;
 import com.godotvillage.meowkanban.domain.vo.FileResourceInfoVO;
 import com.godotvillage.meowkanban.domain.vo.LoginVO;
 import com.godotvillage.meowkanban.domain.vo.UserProfileVO;
+import com.godotvillage.meowkanban.mapper.MailCaptchaMapper;
 import com.godotvillage.meowkanban.mapper.UserMapper;
 import com.godotvillage.meowkanban.service.IAuthService;
 import com.godotvillage.meowkanban.service.IBoardService;
@@ -28,7 +30,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.mock.web.MockMultipartFile;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -49,6 +53,8 @@ class MeowKanbanApplicationTests {
     private IUserService userService;
     @Autowired
     private UserMapper userMapper;
+    @Autowired
+    private MailCaptchaMapper mailCaptchaMapper;
     @Autowired
     private PasswordEncoder passwordEncoder;
 
@@ -110,6 +116,28 @@ class MeowKanbanApplicationTests {
 
     @Test
     @Transactional
+    void mailCaptchaPersistsAndExpiresInFiveMinutes() {
+        LocalDateTime createTime = LocalDateTime.now().minusMinutes(4);
+        MailCaptcha mailCaptcha = new MailCaptcha();
+        mailCaptcha.setMail("verify-" + System.nanoTime() + "@meowkanban.local");
+        mailCaptcha.setCaptcha("123456");
+        mailCaptcha.setUsed(0);
+        mailCaptcha.setCreateTime(createTime);
+
+        mailCaptchaMapper.insert(mailCaptcha);
+
+        MailCaptcha saved = mailCaptchaMapper.selectById(mailCaptcha.getId());
+        assertNotNull(saved);
+        assertEquals("123456", saved.getCaptcha());
+        assertTrue(saved.isAvailable(createTime.plusMinutes(4).plusSeconds(59)));
+        assertTrue(saved.isExpired(createTime.plusMinutes(MailCaptcha.EXPIRE_MINUTES)));
+
+        saved.setUsed(1);
+        assertFalse(saved.isAvailable(createTime.plusMinutes(1)));
+    }
+
+    @Test
+    @Transactional
     void getAndUpdateUserProfile() {
         IdParam idParam = new IdParam();
         idParam.setId(1L);
@@ -135,11 +163,21 @@ class MeowKanbanApplicationTests {
     void registerUsesBCryptPasswordAndLoginWorks() {
         String username = "test_user_" + System.nanoTime();
         String password = "secret123";
+        String email = username + "@meowkanban.local";
+        String captchaCode = "654321";
+
+        MailCaptcha mailCaptcha = new MailCaptcha();
+        mailCaptcha.setMail(email);
+        mailCaptcha.setCaptcha(captchaCode);
+        mailCaptcha.setUsed(0);
+        mailCaptcha.setCreateTime(java.time.LocalDateTime.now());
+        mailCaptchaMapper.insert(mailCaptcha);
 
         RegisterParam registerParam = new RegisterParam();
         registerParam.setUsername(username);
         registerParam.setNickname("测试用户");
-        registerParam.setEmail(username + "@meowkanban.local");
+        registerParam.setEmail(email);
+        registerParam.setCaptcha(captchaCode);
         registerParam.setPassword(password);
 
         authService.register(registerParam);
@@ -155,5 +193,13 @@ class MeowKanbanApplicationTests {
 
         LoginVO loginVO = authService.login(loginParam);
         assertTrue(loginVO.getRoles().contains("ROLE_USER"));
+
+        LoginParam emailLoginParam = new LoginParam();
+        emailLoginParam.setUsername(email);
+        emailLoginParam.setPassword(password);
+
+        LoginVO emailLoginVO = authService.login(emailLoginParam);
+        assertEquals(user.getId(), emailLoginVO.getUser().getId());
+        assertTrue(emailLoginVO.getRoles().contains("ROLE_USER"));
     }
 }

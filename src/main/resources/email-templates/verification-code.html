@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  <title>喵喵看板邮箱验证码</title>
+  <style>
+    @media only screen and (max-width: 600px) {
+      .mk-container {
+        width: 100% !important;
+      }
+
+      .mk-card {
+        padding: 28px 20px !important;
+      }
+
+      .mk-code {
+        font-size: 30px !important;
+        letter-spacing: 4px !important;
+      }
+    }
+  </style>
+</head>
+<body style="margin: 0; padding: 0; background: #f5f7f4; color: #1f2a24; font-family: Arial, 'Microsoft YaHei', 'PingFang SC', sans-serif;">
+  <div style="display: none; max-height: 0; overflow: hidden; opacity: 0; color: transparent;">
+    请输入验证码完成喵喵看板邮箱验证。
+  </div>
+
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background: #f5f7f4;">
+    <tr>
+      <td align="center" style="padding: 32px 16px;">
+        <table role="presentation" class="mk-container" width="560" cellspacing="0" cellpadding="0" border="0" style="width: 560px; max-width: 560px;">
+          <tr>
+            <td style="padding: 0 0 16px;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                  <td style="vertical-align: middle;">
+                    <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+                      <tr>
+                        <td align="center" style="width: 42px; height: 42px; border-radius: 8px; background: #247a63; color: #ffffff; font-size: 18px; font-weight: 700;">
+                          M
+                        </td>
+                        <td style="padding-left: 12px;">
+                          <div style="font-size: 18px; line-height: 24px; font-weight: 700; color: #1f2a24;">喵喵看板</div>
+                          <div style="font-size: 12px; line-height: 18px; color: #66736c;">MeowKanban</div>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <tr>
+            <td class="mk-card" style="padding: 36px 34px; border: 1px solid #dfe7e1; border-radius: 8px; background: #ffffff;">
+              <p style="margin: 0 0 12px; color: #247a63; font-size: 13px; line-height: 20px; font-weight: 700;">邮箱验证</p>
+              <h1 style="margin: 0; color: #1f2a24; font-size: 24px; line-height: 34px; font-weight: 700;">请确认这是你的邮箱</h1>
+
+              <p style="margin: 20px 0 0; color: #3b473f; font-size: 15px; line-height: 26px;">
+                你好，你正在使用此邮箱注册或验证喵喵看板账号。请在页面中输入以下验证码：
+              </p>
+
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 28px 0;">
+                <tr>
+                  <td align="center" style="padding: 22px 16px; border: 1px solid #dfe7e1; border-radius: 8px; background: #eef4ef;">
+                    <div class="mk-code" style="color: #145f4d; font-size: 36px; line-height: 44px; font-weight: 800; letter-spacing: 6px;">
+                      {{code}}
+                    </div>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="margin: 0; color: #3b473f; font-size: 14px; line-height: 24px;">
+                验证码将在 <strong style="color: #1f2a24;">{{expireMinutes}}</strong> 分钟后失效。为了账号安全，请不要把验证码转发给任何人。
+              </p>
+
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin: 28px 0 0;">
+                <tr>
+                  <td style="padding: 16px; border-left: 4px solid #d48a1f; border-radius: 6px; background: #fff8ec;">
+                    <p style="margin: 0; color: #72511f; font-size: 13px; line-height: 22px;">
+                      如果这不是你的操作，可以忽略这封邮件；你的账号不会因为忽略此邮件而发生变更。
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <tr>
+            <td style="padding: 18px 4px 0; color: #66736c; font-size: 12px; line-height: 20px;">
+              <p style="margin: 0;">这是一封系统自动发送的邮件，请勿直接回复。</p>
+              <p style="margin: 8px 0 0;">© 2026 MeowKanban. All rights reserved.</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

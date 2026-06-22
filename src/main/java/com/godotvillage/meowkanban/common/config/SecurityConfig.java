@@ -37,6 +37,7 @@ public class SecurityConfig {
 			"/register",
 			"/api/v1/auth/login",
 			"/api/v1/auth/register",
+			"/api/v1/auth/mail-captcha/send",
 			"/prototype/styles.css",
 			"/prototype/token.js",
 			"/prototype/auth.js",

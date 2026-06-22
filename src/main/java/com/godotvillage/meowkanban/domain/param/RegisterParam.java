@@ -1,9 +1,6 @@
 package com.godotvillage.meowkanban.domain.param;
 
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 import lombok.Data;
 
 @Data
@@ -18,9 +15,14 @@ public class RegisterParam {
     @Size(max = 50, message = "昵称长度不能超过 50 位")
     private String nickname;
 
-    @Email(message = "邮箱格式不正确")
+	@NotBlank(message = "邮箱不能为空")
+	@Email(message = "邮箱格式不正确")
     @Size(max = 120, message = "邮箱长度不能超过 120 位")
     private String email;
+
+	@NotBlank(message = "验证码不能为空")
+	@Pattern(regexp = "^\\d{6}$", message = "验证码必须是 6 位数字")
+	private String captcha;
 
     @NotBlank(message = "密码不能为空")
     @Size(min = 6, max = 72, message = "密码长度必须为 6-72 位")

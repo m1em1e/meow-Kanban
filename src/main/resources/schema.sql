@@ -63,6 +63,17 @@ CREATE TABLE IF NOT EXISTS mk_file_resource (
 
 CREATE INDEX IF NOT EXISTS idx_mk_file_resource_uploaded_by ON mk_file_resource(uploaded_by);
 
+CREATE TABLE IF NOT EXISTS mk_mail_captcha (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  mail VARCHAR(120) NOT NULL,
+  captcha VARCHAR(20) NOT NULL,
+  used INTEGER NOT NULL DEFAULT 0,
+  create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_mk_mail_captcha_mail ON mk_mail_captcha(mail);
+CREATE INDEX IF NOT EXISTS idx_mk_mail_captcha_create_time ON mk_mail_captcha(create_time);
+
 CREATE TABLE IF NOT EXISTS mk_board (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   name VARCHAR(100) NOT NULL,
