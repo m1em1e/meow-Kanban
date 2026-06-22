@@ -1,6 +1,8 @@
 server:
   port: 8084
 spring:
+  profiles:
+    active: dev
   application:
     name: meowKanban
   servlet:
@@ -20,7 +22,9 @@ spring:
   sql:
     init:
       mode: never
-
+  mail:
+    protocol: smtp
+    default-encoding: UTF-8
 mybatis-plus:
   mapper-locations: classpath*:mapper/**/*.xml
   configuration:
@@ -31,11 +35,3 @@ mybatis-plus:
       logic-delete-field: deleted
       logic-not-delete-value: 0
       logic-delete-value: 1
-
-meow-kanban:
-  resource:
-    storage-dir: data/resources
-  security:
-    jwt:
-      secret: ${MEOW_KANBAN_JWT_SECRET:meow-kanban-development-secret-key-change-before-production-20260620}
-      expiration-days: 7
