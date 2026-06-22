@@ -46,3 +46,5 @@ mvnw
 mvnw.cmd
 
 data/resources/*
+
+src/main/resources/application-dev.yaml
