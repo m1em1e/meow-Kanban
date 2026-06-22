@@ -45,4 +45,4 @@ Agents.md
 mvnw
 mvnw.cmd
 
-data/resources
+data/resources/*
