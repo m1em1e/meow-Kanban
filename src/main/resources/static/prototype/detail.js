@@ -14,7 +14,7 @@ const defaultTasks = [
     title: "完善登录后的看板入口",
     description: "把登录成功后的默认页面调整到看板列表，并补充未登录跳转策略。",
     status: "todo",
-    priority: "urgent",
+    priority: 3,
     blocked: false,
     owner: "林夏",
     ownerShortName: "林",
@@ -28,7 +28,7 @@ const defaultTasks = [
     title: "任务详情抽屉字段整理",
     description: "统一任务详情中的负责人、截止时间、优先级和标签展示方式。",
     status: "doing",
-    priority: "normal",
+    priority: 1,
     blocked: false,
     owner: "陈予",
     ownerShortName: "陈",
@@ -42,7 +42,7 @@ const defaultTasks = [
     title: "资源上传接口联调",
     description: "验证头像、封面和附件上传后的资源 id 能正确回填到业务表。",
     status: "review",
-    priority: "normal",
+    priority: 1,
     blocked: false,
     owner: "周宁",
     ownerShortName: "周",
@@ -56,7 +56,7 @@ const defaultTasks = [
     title: "补充最近参与看板查询",
     description: "近期看板优先展示本人创建的看板，其次展示最近操作过的看板。",
     status: "done",
-    priority: "low",
+    priority: 0,
     blocked: false,
     owner: "林夏",
     ownerShortName: "林",
@@ -70,7 +70,7 @@ const defaultTasks = [
     title: "处理 RoleMapper XML 迁移",
     description: "把角色编码查询从注解 SQL 迁移到 XML，保持 Mapper 方法签名不变。",
     status: "done",
-    priority: "normal",
+    priority: 1,
     blocked: false,
     owner: "周宁",
     ownerShortName: "周",
@@ -84,7 +84,7 @@ const defaultTasks = [
     title: "确认邮箱编辑验证流程",
     description: "邮箱变更需要独立验证，不在个人资料普通编辑表单中直接修改。",
     status: "todo",
-    priority: "urgent",
+    priority: 3,
     blocked: true,
     owner: "陈予",
     ownerShortName: "陈",
@@ -115,7 +115,7 @@ createApp({
       tasks: defaultTasks.map((task) => ({ ...task, tags: [...task.tags] })),
       filters: [
         { label: "全部任务", value: "all" },
-        { label: "高优先级", value: "urgent" },
+        { label: "紧急", value: "urgent" },
         { label: "阻塞", value: "blocked" },
         { label: "我负责", value: "mine" }
       ],
@@ -145,7 +145,7 @@ createApp({
       return this.tasks.filter((task) => task.status === "doing").length;
     },
     riskCount() {
-      return this.tasks.filter((task) => task.blocked || task.priority === "urgent").length;
+      return this.tasks.filter((task) => task.blocked || this.normalizePriority(task.priority) === 3).length;
     },
     deliveryRate() {
       if (this.tasks.length === 0) {
@@ -205,7 +205,7 @@ createApp({
         return false;
       }
 
-      if (this.activeFilter === "urgent" && task.priority !== "urgent") {
+      if (this.activeFilter === "urgent" && this.normalizePriority(task.priority) !== 3) {
         return false;
       }
 
@@ -239,11 +239,35 @@ createApp({
     },
     priorityLabel(priority) {
       const labels = {
-        urgent: "高优先级",
-        normal: "普通",
-        low: "低优先级"
+        0: "长期",
+        1: "普通",
+        2: "优先",
+        3: "紧急"
       };
-      return labels[priority] || "普通";
+      return labels[this.normalizePriority(priority)] || "普通";
+    },
+    normalizePriority(priority) {
+      const legacyValues = {
+        low: 0,
+        normal: 1,
+        high: 2,
+        urgent: 3
+      };
+      if (Object.prototype.hasOwnProperty.call(legacyValues, priority)) {
+        return legacyValues[priority];
+      }
+
+      const value = Number(priority);
+      return [0, 1, 2, 3].includes(value) ? value : 1;
+    },
+    priorityClass(priority) {
+      const classes = {
+        0: "priority-long",
+        1: "priority-normal",
+        2: "priority-high",
+        3: "priority-urgent"
+      };
+      return classes[this.normalizePriority(priority)] || "priority-normal";
     },
     sectionName(sectionId) {
       return this.sections.find((section) => section.id === sectionId)?.name || "未分区";
@@ -334,7 +358,7 @@ createApp({
         title: title.trim(),
         description: "新建任务，点击卡片可查看详情。",
         status: sectionId,
-        priority: "normal",
+        priority: 1,
         blocked: false,
         owner: "林夏",
         ownerShortName: "林",
@@ -365,7 +389,10 @@ createApp({
           this.sections = parsed.sections;
         }
         if (Array.isArray(parsed.tasks)) {
-          this.tasks = parsed.tasks;
+          this.tasks = parsed.tasks.map((task) => ({
+            ...task,
+            priority: this.normalizePriority(task.priority)
+          }));
         }
       } catch (error) {
         window.localStorage.removeItem(this.storageKey);

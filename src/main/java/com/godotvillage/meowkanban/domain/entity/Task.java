@@ -32,15 +32,15 @@ public class Task {
 
     private LocalDate dueDate;
 
-    private String priority;
+    private Integer priority;
 
     private Integer blocked;
 
     private Integer sortOrder;
 
-    private Long createdBy;
+    private Long createrId;
 
-    private Long updatedBy;
+    private Long updaterId;
 
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createdTime;

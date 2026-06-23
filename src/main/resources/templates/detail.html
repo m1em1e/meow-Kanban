@@ -151,7 +151,7 @@
                 @click="openDrawer(task.id)"
               >
                 <div class="task-meta">
-                  <span class="badge" :class="task.priority">{{ priorityLabel(task.priority) }}</span>
+                  <span class="badge" :class="priorityClass(task.priority)">{{ priorityLabel(task.priority) }}</span>
                   <span class="badge" :class="{ blocked: task.blocked }" v-if="task.blocked">阻塞</span>
                   <small>{{ task.code }}</small>
                 </div>

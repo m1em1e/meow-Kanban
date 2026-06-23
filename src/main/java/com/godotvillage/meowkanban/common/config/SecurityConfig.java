@@ -32,36 +32,6 @@ public class SecurityConfig {
 		this.jwtAuthenticationFilter = jwtAuthenticationFilter;
 	}
 
-	private static final String[] PUBLIC_MATCHERS = {
-			"/login",
-			"/register",
-			"/api/v1/auth/login",
-			"/api/v1/auth/register",
-			"/api/v1/auth/mail-captcha/send",
-			"/prototype/styles.css",
-			"/prototype/token.js",
-			"/prototype/auth.js",
-			"/prototype/register.js",
-			"/favicon.ico",
-			"/error"
-	};
-
-	private static final String[] PAGE_MATCHERS = {
-			"/",
-			"/boards",
-			"/profile",
-			"/profile/**",
-			"/detail/**"
-	};
-
-	private static final String[] AUTHENTICATED_STATIC_MATCHERS = {
-			"/prototype/index.html",
-			"/prototype/app.js",
-			"/prototype/boards.js",
-			"/prototype/detail.js",
-			"/prototype/profile.js"
-	};
-
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http
@@ -92,9 +62,33 @@ public class SecurityConfig {
 						)
                         .authenticationEntryPoint(pageAuthenticationEntryPoint()))
                 .authorizeHttpRequests(authorize -> authorize
-							.requestMatchers(PUBLIC_MATCHERS).permitAll()
-							.requestMatchers(PAGE_MATCHERS).authenticated()
-							.requestMatchers(AUTHENTICATED_STATIC_MATCHERS).authenticated()
+							.requestMatchers(
+									"/login",
+									"/register",
+									"/api/v1/auth/login",
+									"/api/v1/auth/register",
+									"/api/v1/auth/mail-captcha/send",
+									"/prototype/styles.css",
+									"/prototype/token.js",
+									"/prototype/auth.js",
+									"/prototype/register.js",
+									"/favicon.ico",
+									"/error"
+							).permitAll()
+							.requestMatchers(
+									"/",
+									"/boards",
+									"/profile",
+									"/profile/**",
+									"/detail/**"
+							).authenticated()
+							.requestMatchers(
+									"/prototype/index.html",
+									"/prototype/app.js",
+									"/prototype/boards.js",
+									"/prototype/detail.js",
+									"/prototype/profile.js"
+							).authenticated()
 							.requestMatchers("/api/**").authenticated()
 							.anyRequest().authenticated()
                 )

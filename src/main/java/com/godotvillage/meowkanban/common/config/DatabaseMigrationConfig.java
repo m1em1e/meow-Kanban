@@ -34,6 +34,8 @@ public class DatabaseMigrationConfig {
             jdbcTemplate.update("UPDATE mk_user SET gender = -1 WHERE gender IS NULL");
             migrateStatusColumn(jdbcTemplate, "mk_user");
             migrateStatusColumn(jdbcTemplate, "mk_role");
+            migrateCreatorColumns(jdbcTemplate);
+            migrateTaskPriority(jdbcTemplate);
 
             initializeDefaultDataIfNeeded(dataSource, jdbcTemplate);
         };
@@ -78,6 +80,59 @@ public class DatabaseMigrationConfig {
         jdbcTemplate.update("UPDATE " + tableName + " SET status = 1 WHERE status = 'active'");
         jdbcTemplate.update("UPDATE " + tableName + " SET status = 0 WHERE status = 'disabled'");
         jdbcTemplate.update("UPDATE " + tableName + " SET status = 1 WHERE status IS NULL");
+    }
+
+    private void migrateCreatorColumns(JdbcTemplate jdbcTemplate) {
+        Set<String> userRoleColumns = getTableColumns(jdbcTemplate, "mk_user_role");
+        renameColumnIfNeeded(
+                jdbcTemplate,
+                userRoleColumns,
+                "created_by",
+                "creater_id",
+                "ALTER TABLE mk_user_role RENAME COLUMN created_by TO creater_id"
+        );
+
+        Set<String> taskColumns = getTableColumns(jdbcTemplate, "mk_task");
+        renameColumnIfNeeded(
+                jdbcTemplate,
+                taskColumns,
+                "created_by",
+                "creater_id",
+                "ALTER TABLE mk_task RENAME COLUMN created_by TO creater_id"
+        );
+        renameColumnIfNeeded(
+                jdbcTemplate,
+                taskColumns,
+                "updated_by",
+                "updater_id",
+                "ALTER TABLE mk_task RENAME COLUMN updated_by TO updater_id"
+        );
+    }
+
+    private void migrateTaskPriority(JdbcTemplate jdbcTemplate) {
+        jdbcTemplate.update("UPDATE mk_task SET priority = 0 WHERE lower(CAST(priority AS TEXT)) = 'low'");
+        jdbcTemplate.update("UPDATE mk_task SET priority = 1 WHERE lower(CAST(priority AS TEXT)) = 'normal'");
+        jdbcTemplate.update("UPDATE mk_task SET priority = 3 WHERE lower(CAST(priority AS TEXT)) = 'urgent'");
+        jdbcTemplate.update("UPDATE mk_task SET priority = 1 WHERE priority IS NULL OR CAST(priority AS TEXT) NOT IN ('0', '1', '2', '3')");
+    }
+
+    private Set<String> getTableColumns(JdbcTemplate jdbcTemplate, String tableName) {
+        return jdbcTemplate.queryForList("PRAGMA table_info(" + tableName + ")")
+                .stream()
+                .map(this::getColumnName)
+                .collect(Collectors.toSet());
+    }
+
+    private void renameColumnIfNeeded(
+            JdbcTemplate jdbcTemplate,
+            Set<String> columns,
+            String oldColumn,
+            String newColumn,
+            String sql
+    ) {
+        if (columns.contains(oldColumn) && !columns.contains(newColumn)) {
+            jdbcTemplate.execute(sql);
+        }
     }
 
     private String getColumnName(Map<String, Object> row) {

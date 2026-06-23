@@ -845,6 +845,26 @@ body.sidebar-collapsed .sidebar-toggle span:nth-child(3) {
   background: #fdecef;
 }
 
+.badge.priority-urgent {
+  color: #963946;
+  background: #fdecef;
+}
+
+.badge.priority-high {
+  color: #7a5600;
+  background: #fff3c4;
+}
+
+.badge.priority-normal {
+  color: #1f6a59;
+  background: #e1f4ee;
+}
+
+.badge.priority-long {
+  color: #4b5563;
+  background: #eef2f7;
+}
+
 .badge.blocked {
   color: #81510f;
   background: #fff2d9;

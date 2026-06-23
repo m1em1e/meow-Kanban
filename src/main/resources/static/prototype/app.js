@@ -19,7 +19,7 @@ const tasks = [
     owner: "林夏",
     due: "06-04",
     status: "backlog",
-    priority: "urgent",
+    priority: 3,
     tags: ["产品", "信息架构"],
     blocked: false,
     mine: true
@@ -31,7 +31,7 @@ const tasks = [
     owner: "陈予",
     due: "06-05",
     status: "todo",
-    priority: "normal",
+    priority: 1,
     tags: ["前端", "交互"],
     blocked: false,
     mine: false
@@ -43,7 +43,7 @@ const tasks = [
     owner: "周宁",
     due: "06-06",
     status: "todo",
-    priority: "normal",
+    priority: 1,
     tags: ["后端", "模型"],
     blocked: false,
     mine: false
@@ -55,7 +55,7 @@ const tasks = [
     owner: "陈予",
     due: "06-03",
     status: "doing",
-    priority: "urgent",
+    priority: 3,
     tags: ["前端", "统计"],
     blocked: false,
     mine: true
@@ -67,7 +67,7 @@ const tasks = [
     owner: "周宁",
     due: "06-07",
     status: "doing",
-    priority: "urgent",
+    priority: 3,
     tags: ["后端", "异常"],
     blocked: true,
     mine: false
@@ -79,7 +79,7 @@ const tasks = [
     owner: "林夏",
     due: "06-08",
     status: "review",
-    priority: "normal",
+    priority: 1,
     tags: ["测试", "验收"],
     blocked: false,
     mine: true
@@ -91,7 +91,7 @@ const tasks = [
     owner: "林夏",
     due: "06-09",
     status: "done",
-    priority: "normal",
+    priority: 1,
     tags: ["数据", "复盘"],
     blocked: false,
     mine: false
@@ -183,14 +183,45 @@ function loadSections() {
 }
 
 function priorityLabel(priority) {
-  return priority === "urgent" ? "高优先级" : "普通";
+  const labels = {
+    0: "长期",
+    1: "普通",
+    2: "优先",
+    3: "紧急"
+  };
+  return labels[normalizePriority(priority)] || "普通";
+}
+
+function normalizePriority(priority) {
+  const legacyValues = {
+    low: 0,
+    normal: 1,
+    high: 2,
+    urgent: 3
+  };
+  if (Object.prototype.hasOwnProperty.call(legacyValues, priority)) {
+    return legacyValues[priority];
+  }
+
+  const value = Number(priority);
+  return [0, 1, 2, 3].includes(value) ? value : 1;
+}
+
+function priorityClass(priority) {
+  const classes = {
+    0: "priority-long",
+    1: "priority-normal",
+    2: "priority-high",
+    3: "priority-urgent"
+  };
+  return classes[normalizePriority(priority)] || "priority-normal";
 }
 
 function taskMatches(task, query) {
   const text = [task.id, task.title, task.desc, task.owner, ...task.tags].join(" ").toLowerCase();
   const filterMatch =
     activeFilter === "all" ||
-    (activeFilter === "urgent" && task.priority === "urgent") ||
+    (activeFilter === "urgent" && normalizePriority(task.priority) === 3) ||
     (activeFilter === "blocked" && task.blocked) ||
     (activeFilter === "mine" && task.mine);
 
@@ -229,13 +260,12 @@ function renderBoard() {
 
 function renderTaskCard(task) {
   const blocked = task.blocked ? '<span class="badge blocked">阻塞</span>' : "";
-  const urgentClass = task.priority === "urgent" ? "urgent" : "normal";
   const tagList = task.tags.map((tag) => `<span class="badge">${tag}</span>`).join("");
 
   return `
     <article class="task-card" draggable="true" data-id="${task.id}">
       <div class="task-meta">
-        <span class="badge ${urgentClass}">${priorityLabel(task.priority)}</span>
+        <span class="badge ${priorityClass(task.priority)}">${priorityLabel(task.priority)}</span>
         ${blocked}
       </div>
       <h3>${task.title}</h3>
@@ -414,7 +444,7 @@ function createTask(sectionId) {
     owner: "林夏",
     due: "06-10",
     status: sectionId,
-    priority: "normal",
+    priority: 1,
     tags: ["草稿"],
     blocked: false,
     mine: true

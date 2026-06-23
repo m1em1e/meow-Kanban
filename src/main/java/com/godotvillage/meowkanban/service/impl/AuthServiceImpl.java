@@ -122,7 +122,7 @@ public class AuthServiceImpl implements IAuthService {
         UserRole userRole = new UserRole();
         userRole.setUserId(user.getId());
         userRole.setRoleId(defaultRole.getId());
-        userRole.setCreatedBy(user.getId());
+        userRole.setCreaterId(user.getId());
         userRoleMapper.insert(userRole);
 
 		captcha.setUsed(1);

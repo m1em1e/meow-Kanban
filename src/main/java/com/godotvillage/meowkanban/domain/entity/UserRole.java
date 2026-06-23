@@ -21,7 +21,7 @@ public class UserRole {
 
     private Long roleId;
 
-    private Long createdBy;
+    private Long createrId;
 
     @TableField(fill = FieldFill.INSERT)
     private LocalDateTime createdTime;
