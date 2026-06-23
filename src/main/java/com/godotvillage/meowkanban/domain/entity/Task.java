@@ -28,8 +28,6 @@ public class Task {
 
     private String description;
 
-    private Long ownerId;
-
     private LocalDate dueDate;
 
     private Integer priority;

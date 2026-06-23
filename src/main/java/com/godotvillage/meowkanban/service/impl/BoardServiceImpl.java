@@ -1,24 +1,19 @@
 package com.godotvillage.meowkanban.service.impl;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.godotvillage.meowkanban.common.exception.BaseException;
 import com.godotvillage.meowkanban.common.result.PageResult;
 import com.godotvillage.meowkanban.domain.entity.Board;
-import com.godotvillage.meowkanban.domain.entity.User;
 import com.godotvillage.meowkanban.domain.param.BoardInfoQueryParam;
 import com.godotvillage.meowkanban.domain.param.IdParam;
 import com.godotvillage.meowkanban.domain.param.NewBoardParam;
+import com.godotvillage.meowkanban.domain.vo.BoardDetailVO;
 import com.godotvillage.meowkanban.domain.vo.BoardInfoVO;
 import com.godotvillage.meowkanban.mapper.BoardMapper;
-import com.godotvillage.meowkanban.mapper.UserMapper;
 import com.godotvillage.meowkanban.service.IBoardService;
-import jakarta.annotation.Resource;
 import org.springframework.beans.BeanUtils;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -27,7 +22,6 @@ import java.util.List;
 
 @Service
 public class BoardServiceImpl extends ServiceImpl<BoardMapper, Board> implements IBoardService {
-
 
     @Override
     public PageResult<BoardInfoVO> listBoardInfo(BoardInfoQueryParam param) {
@@ -88,4 +82,17 @@ public class BoardServiceImpl extends ServiceImpl<BoardMapper, Board> implements
         board.setCoverResourceId(param.getCoverResourceId());
         baseMapper.insert(board);
     }
+
+	@Override
+	public BoardDetailVO getBoardDetail(IdParam param) {
+		if (param == null || param.getId() == null) {
+			throw new BaseException("看板 ID 不能为空");
+		}
+
+		BoardDetailVO boardDetailVO = baseMapper.getBoardDetail(param.getId());
+		if (boardDetailVO == null) {
+			throw new BaseException("看板不存在");
+		}
+		return boardDetailVO;
+	}
 }

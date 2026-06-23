@@ -6,6 +6,7 @@ import com.godotvillage.meowkanban.common.result.PageResult;
 import com.godotvillage.meowkanban.domain.param.BoardInfoQueryParam;
 import com.godotvillage.meowkanban.domain.param.IdParam;
 import com.godotvillage.meowkanban.domain.param.NewBoardParam;
+import com.godotvillage.meowkanban.domain.vo.BoardDetailVO;
 import com.godotvillage.meowkanban.domain.vo.BoardInfoVO;
 import com.godotvillage.meowkanban.service.IBoardService;
 import jakarta.annotation.Resource;
@@ -35,5 +36,10 @@ public class BoardRestController {
         boardService.newBoard(param);
         return Result.success();
     }
+
+	@GetMapping("/detail")
+	public Result<BoardDetailVO> getBoardDetail(IdParam param) {
+		return Result.success(boardService.getBoardDetail(param));
+	}
 
 }

@@ -4,6 +4,52 @@
         "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.godotvillage.meowkanban.mapper.BoardMapper">
 
+    <resultMap id="BoardDetailResultMap"
+               type="com.godotvillage.meowkanban.domain.vo.BoardDetailVO">
+        <id column="board_id" property="boardId"/>
+        <result column="board_title" property="boardTitle"/>
+        <result column="cover_id" property="coverId"/>
+        <result column="board_desc" property="desc"/>
+        <collection property="memberIds"
+                    column="{boardId=board_id}"
+                    select="getBoardMemberIds"
+                    javaType="java.util.ArrayList"
+                    ofType="java.lang.Long"/>
+        <collection property="sectionVOS"
+                    javaType="java.util.ArrayList"
+                    ofType="com.godotvillage.meowkanban.domain.vo.TaskSectionVO"
+                    notNullColumn="section_id">
+            <id column="section_id" property="taskSectionId"/>
+            <result column="section_title" property="sectionTitle"/>
+            <collection property="tasks"
+                        javaType="java.util.ArrayList"
+                        ofType="com.godotvillage.meowkanban.domain.vo.TaskVO"
+                        notNullColumn="task_id">
+                <id column="task_id" property="taskId"/>
+                <result column="task_no" property="taskNo"/>
+                <result column="task_title" property="title"/>
+                <result column="task_description" property="description"/>
+                <result column="task_due_date" property="dueDate"/>
+                <result column="task_priority" property="priority"/>
+                <result column="task_blocked" property="blocked"/>
+                <result column="task_sort" property="sort"/>
+                <result column="task_creater_id" property="createrId"/>
+                <result column="task_created_time" property="createTime"/>
+                <result column="task_updated_time" property="updateTime"/>
+                <collection property="tags"
+                            column="{taskId=task_id}"
+                            select="getTaskTagNames"
+                            javaType="java.util.ArrayList"
+                            ofType="java.lang.String"/>
+                <collection property="referUserIds"
+                            column="{taskId=task_id}"
+                            select="getTaskReferUserIds"
+                            javaType="java.util.ArrayList"
+                            ofType="java.lang.Long"/>
+            </collection>
+        </collection>
+    </resultMap>
+
     <select id="getBoardInfoList"
             resultType="com.godotvillage.meowkanban.domain.entity.Board">
         SELECT b.*
@@ -61,6 +107,64 @@
           br.last_active_time DESC,
           b.id DESC
         LIMIT 5
+    </select>
+
+    <select id="getBoardDetail" resultMap="BoardDetailResultMap">
+        SELECT
+          b.id AS board_id,
+          b.name AS board_title,
+          b.cover_resource_id AS cover_id,
+          b.description AS board_desc,
+          bs.id AS section_id,
+          bs.title AS section_title,
+          bs.sort_order AS section_sort,
+          t.id AS task_id,
+          t.task_no AS task_no,
+          t.title AS task_title,
+          t.description AS task_description,
+          t.due_date AS task_due_date,
+          t.priority AS task_priority,
+          t.blocked AS task_blocked,
+          t.sort_order AS task_sort,
+          t.creater_id AS task_creater_id,
+          t.created_time AS task_created_time,
+          t.updated_time AS task_updated_time
+        FROM mk_board b
+        LEFT JOIN mk_board_section bs
+          ON bs.board_id = b.id
+         AND bs.deleted = 0
+        LEFT JOIN mk_task t
+          ON t.board_id = b.id
+         AND t.section_id = bs.id
+         AND t.deleted = 0
+        WHERE b.id = #{id}
+          AND b.deleted = 0
+        ORDER BY bs.sort_order ASC, bs.id ASC, t.sort_order ASC, t.id ASC
+    </select>
+
+    <select id="getBoardMemberIds" resultType="java.lang.Long">
+        SELECT bm.user_id
+        FROM mk_board_member bm
+        WHERE bm.board_id = #{boardId}
+          AND bm.deleted = 0
+        ORDER BY bm.joined_time ASC, bm.id ASC
+    </select>
+
+    <select id="getTaskTagNames" resultType="java.lang.String">
+        SELECT tag.name
+        FROM mk_task_tag task_tag
+        INNER JOIN mk_tag tag
+          ON tag.id = task_tag.tag_id
+         AND tag.deleted = 0
+        WHERE task_tag.task_id = #{taskId}
+        ORDER BY task_tag.id ASC
+    </select>
+
+    <select id="getTaskReferUserIds" resultType="java.lang.Long">
+        SELECT refer_user.user_id
+        FROM mk_task_refer_user refer_user
+        WHERE refer_user.task_id = #{taskId}
+        ORDER BY refer_user.id ASC
     </select>
 
 </mapper>

@@ -156,7 +156,6 @@ CREATE TABLE IF NOT EXISTS mk_task (
   task_no VARCHAR(30) NOT NULL,
   title VARCHAR(200) NOT NULL,
   description TEXT,
-  owner_id INTEGER,
   due_date DATE,
   priority INTEGER NOT NULL DEFAULT 1,
   blocked INTEGER NOT NULL DEFAULT 0,
@@ -171,7 +170,6 @@ CREATE TABLE IF NOT EXISTS mk_task (
 
 CREATE UNIQUE INDEX IF NOT EXISTS uk_mk_task_board_task_no ON mk_task(board_id, task_no);
 CREATE INDEX IF NOT EXISTS idx_mk_task_board_section_sort ON mk_task(board_id, section_id, sort_order);
-CREATE INDEX IF NOT EXISTS idx_mk_task_owner_id ON mk_task(owner_id);
 CREATE INDEX IF NOT EXISTS idx_mk_task_due_date ON mk_task(due_date);
 CREATE INDEX IF NOT EXISTS idx_mk_task_priority ON mk_task(priority);
 CREATE INDEX IF NOT EXISTS idx_mk_task_blocked ON mk_task(blocked);
@@ -198,6 +196,16 @@ CREATE TABLE IF NOT EXISTS mk_task_tag (
 
 CREATE UNIQUE INDEX IF NOT EXISTS uk_mk_task_tag_task_tag ON mk_task_tag(task_id, tag_id);
 CREATE INDEX IF NOT EXISTS idx_mk_task_tag_tag_id ON mk_task_tag(tag_id);
+
+CREATE TABLE IF NOT EXISTS mk_task_refer_user (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  task_id INTEGER NOT NULL,
+  user_id INTEGER NOT NULL,
+  created_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS uk_mk_task_refer_user_task_user ON mk_task_refer_user(task_id, user_id);
+CREATE INDEX IF NOT EXISTS idx_mk_task_refer_user_user_id ON mk_task_refer_user(user_id);
 
 CREATE TABLE IF NOT EXISTS mk_task_comment (
   id INTEGER PRIMARY KEY AUTOINCREMENT,

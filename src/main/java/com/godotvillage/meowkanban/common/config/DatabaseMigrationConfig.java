@@ -36,6 +36,7 @@ public class DatabaseMigrationConfig {
             migrateStatusColumn(jdbcTemplate, "mk_role");
             migrateCreatorColumns(jdbcTemplate);
             migrateTaskPriority(jdbcTemplate);
+            migrateTaskOwnerToReferUsers(jdbcTemplate);
 
             initializeDefaultDataIfNeeded(dataSource, jdbcTemplate);
         };
@@ -114,6 +115,22 @@ public class DatabaseMigrationConfig {
         jdbcTemplate.update("UPDATE mk_task SET priority = 1 WHERE lower(CAST(priority AS TEXT)) = 'normal'");
         jdbcTemplate.update("UPDATE mk_task SET priority = 3 WHERE lower(CAST(priority AS TEXT)) = 'urgent'");
         jdbcTemplate.update("UPDATE mk_task SET priority = 1 WHERE priority IS NULL OR CAST(priority AS TEXT) NOT IN ('0', '1', '2', '3')");
+    }
+
+    private void migrateTaskOwnerToReferUsers(JdbcTemplate jdbcTemplate) {
+        Set<String> taskColumns = getTableColumns(jdbcTemplate, "mk_task");
+        if (!taskColumns.contains("owner_id")) {
+            return;
+        }
+
+        jdbcTemplate.update("""
+                INSERT OR IGNORE INTO mk_task_refer_user (task_id, user_id)
+                SELECT id, owner_id
+                FROM mk_task
+                WHERE owner_id IS NOT NULL
+                """);
+        jdbcTemplate.execute("DROP INDEX IF EXISTS idx_mk_task_owner_id");
+        jdbcTemplate.execute("ALTER TABLE mk_task DROP COLUMN owner_id");
     }
 
     private Set<String> getTableColumns(JdbcTemplate jdbcTemplate, String tableName) {

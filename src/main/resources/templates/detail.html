@@ -118,10 +118,28 @@
     </header>
 
     <div class="app-shell board-shell">
-      <main class="main-content">
-        <section class="board" aria-label="任务看板">
-          <section v-for="section in sections" :key="section.id" class="column" :data-status="section.id">
-            <header>
+      <main class="main-content board-detail-content">
+        <p class="task-empty" v-if="loading">正在加载看板...</p>
+        <p class="task-empty" v-else-if="loadError">{{ loadError }}</p>
+        <section v-else class="board" aria-label="任务看板">
+          <section
+            v-for="section in sections"
+            :key="section.id"
+            class="column"
+            :class="{
+              'section-dragging': draggedSectionId === section.id,
+              'section-drag-over': sectionDragOverId === section.id && draggedSectionId !== section.id
+            }"
+            :data-status="section.id"
+            @dragover.prevent="dragOverSectionColumn(section.id, $event)"
+            @dragleave="leaveSectionColumn(section.id, $event)"
+            @drop="dropSection(section.id, $event)"
+          >
+            <header
+              draggable="true"
+              @dragstart="startSectionDrag(section.id, $event)"
+              @dragend="endSectionDrag"
+            >
               <div class="column-title">
                 <h2 class="editable-section-title" :title="section.name" @dblclick="renameSection(section.id)">{{ section.name }}</h2>
                 <span class="count">{{ tasksBySection(section.id).length }}</span>
@@ -134,11 +152,11 @@
 
             <div
               class="task-list"
-              :class="{ 'drag-over': dragOverSection === section.id }"
+              :class="{ 'drag-over': draggedTaskId && dragOverSection === section.id }"
               :data-dropzone="section.id"
-              @dragover.prevent="dragOverSection = section.id"
-              @dragleave="dragOverSection = null"
-              @drop="dropTask(section.id)"
+              @dragover.prevent="dragOverTaskList(section.id, $event)"
+              @dragleave="leaveTaskList(section.id, $event)"
+              @drop="dropTask(section.id, $event)"
             >
               <article
                 v-for="task in tasksBySection(section.id)"
@@ -146,8 +164,8 @@
                 class="task-card"
                 draggable="true"
                 :data-id="task.id"
-                @dragstart="startDrag(task.id)"
-                @dragend="dragOverSection = null"
+                @dragstart.stop="startDrag(task.id, $event)"
+                @dragend="endTaskDrag"
                 @click="openDrawer(task.id)"
               >
                 <div class="task-meta">

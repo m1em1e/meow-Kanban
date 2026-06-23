@@ -94,6 +94,9 @@ const defaultTasks = [
   }
 ];
 
+const useMockBoardDetail = window.location.protocol === "file:"
+  || window.location.pathname.includes("/prototype/");
+
 createApp({
   data() {
     return {
@@ -111,6 +114,10 @@ createApp({
       selectedTaskId: null,
       draggedTaskId: null,
       dragOverSection: null,
+      draggedSectionId: null,
+      sectionDragOverId: null,
+      loading: false,
+      loadError: "",
       sections: defaultSections.map((section) => ({ ...section })),
       tasks: defaultTasks.map((task) => ({ ...task, tags: [...task.tags] })),
       filters: [
@@ -175,9 +182,11 @@ createApp({
   mounted() {
     const root = document.getElementById("detailApp");
     this.boardId = root?.dataset.boardId || new URLSearchParams(window.location.search).get("boardId") || "demo";
-    window.MeowKanbanAuth?.requireToken();
     this.boardName = `看板 #${this.boardId}`;
-    this.loadState();
+    if (!useMockBoardDetail) {
+      window.MeowKanbanAuth?.requireToken();
+    }
+    this.loadBoardDetail();
     this.sidebarCollapsed = window.localStorage.getItem("meow-kanban-sidebar-collapsed") === "true";
     document.body.classList.toggle("sidebar-collapsed", this.sidebarCollapsed);
     document.addEventListener("click", this.handleDocumentClick);
@@ -199,6 +208,109 @@ createApp({
     },
     tasksBySection(sectionId) {
       return this.tasks.filter((task) => task.status === sectionId && this.matchesTask(task));
+    },
+    async loadBoardDetail() {
+      if (useMockBoardDetail) {
+        this.loadState();
+        return;
+      }
+
+      this.loading = true;
+      this.loadError = "";
+
+      try {
+        const apiFetch = window.MeowKanbanAuth?.fetch || fetch;
+        const response = await apiFetch(`/api/v1/board/detail?id=${encodeURIComponent(this.boardId)}`, {
+          headers: { Accept: "application/json" }
+        });
+        const result = await this.readApiResult(response, "看板详情加载失败");
+        this.applyBoardDetail(result.data);
+      } catch (error) {
+        this.loadError = error.message || "看板详情加载失败";
+        this.sections = [];
+        this.tasks = [];
+      } finally {
+        this.loading = false;
+      }
+    },
+    async readApiResult(response, fallbackMessage) {
+      let result = null;
+      try {
+        const text = await response.text();
+        result = text ? JSON.parse(text) : null;
+      } catch (error) {
+        result = null;
+      }
+
+      if (!response.ok || !result || result.code !== 1) {
+        throw new Error(result?.msg || fallbackMessage);
+      }
+      return result;
+    },
+    applyBoardDetail(detail) {
+      if (!detail) {
+        throw new Error("看板详情加载失败");
+      }
+
+      this.boardName = detail.boardTitle || `看板 #${this.boardId}`;
+      const memberIds = Array.isArray(detail.memberIds) ? detail.memberIds : [];
+      this.members = memberIds.map((id) => {
+        const name = `成员 #${id}`;
+        return {
+          name,
+          shortName: this.createShortName(name),
+          role: "成员",
+          activeAt: "已加入",
+          accent: this.avatarAccent(name)
+        };
+      });
+      const sectionVOS = Array.isArray(detail.sectionVOS) ? detail.sectionVOS : [];
+      this.sections = sectionVOS.map((section) => ({
+        id: String(section.taskSectionId),
+        name: section.sectionTitle || "未命名分区"
+      }));
+      this.tasks = sectionVOS.flatMap((section) => {
+        const sectionId = String(section.taskSectionId);
+        const tasks = Array.isArray(section.tasks) ? section.tasks : [];
+        return tasks.map((task) => this.normalizeRemoteTask(task, sectionId));
+      });
+      this.selectedTaskId = null;
+    },
+    normalizeRemoteTask(task, sectionId) {
+      const referUserIds = Array.isArray(task.referUserIds) ? task.referUserIds : [];
+      const owner = referUserIds.length > 0 ? `成员 #${referUserIds[0]}` : "未指派";
+      return {
+        id: String(task.taskId),
+        code: task.taskNo || `TASK-${task.taskId}`,
+        title: task.title || "未命名任务",
+        description: task.description || "",
+        status: sectionId,
+        priority: this.normalizePriority(task.priority),
+        blocked: Boolean(task.blocked),
+        owner,
+        ownerShortName: this.createShortName(owner),
+        ownerAccent: this.avatarAccent(owner),
+        due: this.formatDate(task.dueDate),
+        tags: Array.isArray(task.tags) ? task.tags : []
+      };
+    },
+    createShortName(name) {
+      return Array.from(String(name || "未").trim()).slice(0, 1).join("") || "未";
+    },
+    avatarAccent(value) {
+      const accents = ["teal", "violet", "amber", "rose"];
+      const text = String(value || "0");
+      let sum = 0;
+      for (const char of text) {
+        sum += char.charCodeAt(0);
+      }
+      return accents[sum % accents.length];
+    },
+    formatDate(value) {
+      if (!value) {
+        return "待定";
+      }
+      return String(value).slice(0, 10);
     },
     matchesTask(task) {
       if (this.hideDone && task.status === "done") {
@@ -278,16 +390,106 @@ createApp({
     closeDrawer() {
       this.selectedTaskId = null;
     },
-    startDrag(taskId) {
+    startDrag(taskId, event) {
       this.draggedTaskId = taskId;
+      this.draggedSectionId = null;
+      this.sectionDragOverId = null;
+      if (event?.dataTransfer) {
+        event.dataTransfer.effectAllowed = "move";
+        event.dataTransfer.setData("text/plain", `task:${taskId}`);
+      }
     },
-    dropTask(sectionId) {
+    dragOverTaskList(sectionId, event) {
+      if (this.draggedSectionId && !this.draggedTaskId) {
+        this.dragOverSectionColumn(sectionId, event);
+        return;
+      }
+      if (!this.draggedTaskId) {
+        return;
+      }
+      event?.stopPropagation();
+      this.dragOverSection = sectionId;
+      if (event?.dataTransfer) {
+        event.dataTransfer.dropEffect = "move";
+      }
+    },
+    leaveTaskList(sectionId, event) {
+      if (this.draggedSectionId && !this.draggedTaskId) {
+        this.leaveSectionColumn(sectionId, event);
+        return;
+      }
+      event?.stopPropagation();
+      if (event?.currentTarget instanceof Element && event.currentTarget.contains(event.relatedTarget)) {
+        return;
+      }
+      this.dragOverSection = null;
+    },
+    dropTask(sectionId, event) {
+      if (this.draggedSectionId && !this.draggedTaskId) {
+        event?.stopPropagation();
+        this.dropSection(sectionId, event);
+        return;
+      }
+      event?.preventDefault();
+      event?.stopPropagation();
       const task = this.tasks.find((item) => item.id === this.draggedTaskId);
       if (task) {
         task.status = sectionId;
       }
+      this.endTaskDrag();
+    },
+    endTaskDrag() {
       this.draggedTaskId = null;
       this.dragOverSection = null;
+    },
+    startSectionDrag(sectionId, event) {
+      if (event?.target instanceof Element && event.target.closest("button")) {
+        event.preventDefault();
+        return;
+      }
+      this.draggedSectionId = sectionId;
+      this.sectionDragOverId = sectionId;
+      this.draggedTaskId = null;
+      this.dragOverSection = null;
+      if (event?.dataTransfer) {
+        event.dataTransfer.effectAllowed = "move";
+        event.dataTransfer.setData("text/plain", `section:${sectionId}`);
+      }
+    },
+    dragOverSectionColumn(sectionId, event) {
+      if (!this.draggedSectionId || this.draggedTaskId) {
+        return;
+      }
+      this.sectionDragOverId = sectionId;
+      if (event?.dataTransfer) {
+        event.dataTransfer.dropEffect = "move";
+      }
+    },
+    leaveSectionColumn(sectionId, event) {
+      if (event?.currentTarget instanceof Element && event.currentTarget.contains(event.relatedTarget)) {
+        return;
+      }
+      if (this.sectionDragOverId === sectionId) {
+        this.sectionDragOverId = null;
+      }
+    },
+    dropSection(targetSectionId, event) {
+      event?.preventDefault();
+      if (!this.draggedSectionId || this.draggedTaskId) {
+        return;
+      }
+
+      const fromIndex = this.sections.findIndex((section) => section.id === this.draggedSectionId);
+      const toIndex = this.sections.findIndex((section) => section.id === targetSectionId);
+      if (fromIndex >= 0 && toIndex >= 0 && fromIndex !== toIndex) {
+        const [movedSection] = this.sections.splice(fromIndex, 1);
+        this.sections.splice(toIndex, 0, movedSection);
+      }
+      this.endSectionDrag();
+    },
+    endSectionDrag() {
+      this.draggedSectionId = null;
+      this.sectionDragOverId = null;
     },
     addSection() {
       const name = this.newSectionName.trim();
@@ -368,7 +570,7 @@ createApp({
       });
     },
     saveState() {
-      if (!this.boardId) {
+      if (!useMockBoardDetail || !this.boardId) {
         return;
       }
 

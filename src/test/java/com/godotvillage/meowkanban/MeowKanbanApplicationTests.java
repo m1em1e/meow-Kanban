@@ -9,6 +9,7 @@ import com.godotvillage.meowkanban.domain.param.IdParam;
 import com.godotvillage.meowkanban.domain.param.LoginParam;
 import com.godotvillage.meowkanban.domain.param.RegisterParam;
 import com.godotvillage.meowkanban.domain.param.UserProfileUpdateParam;
+import com.godotvillage.meowkanban.domain.vo.BoardDetailVO;
 import com.godotvillage.meowkanban.domain.vo.BoardInfoVO;
 import com.godotvillage.meowkanban.domain.vo.FileResourceContentVO;
 import com.godotvillage.meowkanban.domain.vo.FileResourceInfoVO;
@@ -95,6 +96,26 @@ class MeowKanbanApplicationTests {
         assertNotNull(result);
         assertTrue(result.size() <= 5);
         assertTrue(result.stream().allMatch(board -> board.getOwnerId() != null));
+    }
+
+    @Test
+    void getBoardDetailMapsSectionsAndTasksFromXml() {
+        IdParam param = new IdParam();
+        param.setId(1L);
+
+        BoardDetailVO detail = boardService.getBoardDetail(param);
+        var firstTask = detail.getSectionVOS().stream()
+                .flatMap(section -> section.getTasks().stream())
+                .findFirst()
+                .orElseThrow();
+
+        assertEquals(1L, detail.getBoardId());
+        assertNotNull(detail.getSectionVOS());
+        assertFalse(detail.getSectionVOS().isEmpty());
+        assertNotNull(firstTask.getTags());
+        assertFalse(firstTask.getTags().isEmpty());
+        assertNotNull(firstTask.getReferUserIds());
+        assertFalse(firstTask.getReferUserIds().isEmpty());
     }
 
     @Test
