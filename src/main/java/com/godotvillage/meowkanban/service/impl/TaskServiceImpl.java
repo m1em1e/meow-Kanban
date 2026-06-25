@@ -2,7 +2,7 @@ package com.godotvillage.meowkanban.service.impl;
 
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import com.godotvillage.meowkanban.controller.restController.TaskCardModifyParam;
+import com.godotvillage.meowkanban.domain.param.TaskCardModifyParam;
 import com.godotvillage.meowkanban.domain.entity.Task;
 import com.godotvillage.meowkanban.domain.param.IdParam;
 import com.godotvillage.meowkanban.domain.vo.TaskCardAddParam;

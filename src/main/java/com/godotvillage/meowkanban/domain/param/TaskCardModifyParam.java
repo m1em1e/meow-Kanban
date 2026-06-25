@@ -1,4 +1,4 @@
-package com.godotvillage.meowkanban.controller.restController;
+package com.godotvillage.meowkanban.domain.param;
 
 import lombok.Data;
 
