@@ -19,4 +19,5 @@ public class BoardDetailVO {
 	private String desc;
 	private List<Long> memberIds;
 	private List<TaskSectionVO> sectionVOS;
+	private String boardRoleCode;
 }

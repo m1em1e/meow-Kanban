@@ -78,14 +78,25 @@
             @click="memberMenuOpen = !memberMenuOpen"
           >
             <span class="avatar-stack" aria-hidden="true">
-              <span v-for="member in members.slice(0, 3)" :key="member.name" class="avatar" :class="member.accent">{{ member.shortName }}</span>
+              <span
+                v-for="member in members.slice(0, 3)"
+                :key="member.id"
+                class="avatar"
+                :class="[member.accent, { 'has-image': member.avatarUrl }]"
+              >
+                <img v-if="member.avatarUrl" :src="member.avatarUrl" alt="">
+                <template v-else>{{ member.shortName }}</template>
+              </span>
             </span>
             <span>成员</span>
           </button>
           <div class="member-dropdown" id="memberMenu" :aria-hidden="String(!memberMenuOpen)" :class="{ open: memberMenuOpen }">
             <p class="label">最近登录</p>
-            <div v-for="member in members" :key="member.name" class="member-row">
-              <span class="avatar" :class="member.accent">{{ member.shortName }}</span>
+            <div v-for="member in members" :key="member.id" class="member-row">
+              <span class="avatar" :class="[member.accent, { 'has-image': member.avatarUrl }]">
+                <img v-if="member.avatarUrl" :src="member.avatarUrl" alt="">
+                <template v-else>{{ member.shortName }}</template>
+              </span>
               <span>{{ member.name }}</span>
               <small>{{ member.role }} · {{ member.activeAt }}</small>
             </div>
@@ -176,7 +187,10 @@
                 <h3>{{ task.title }}</h3>
                 <p>{{ task.description }}</p>
                 <div class="task-footer">
-                  <span class="avatar" :class="task.ownerAccent">{{ task.ownerShortName }}</span>
+                  <span class="avatar" :class="[task.ownerAccent, { 'has-image': task.ownerAvatarUrl }]">
+                    <img v-if="task.ownerAvatarUrl" :src="task.ownerAvatarUrl" alt="">
+                    <template v-else>{{ task.ownerShortName }}</template>
+                  </span>
                   <span>{{ task.owner }}</span>
                   <span>{{ task.due }}</span>
                 </div>

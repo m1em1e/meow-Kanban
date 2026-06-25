@@ -21,6 +21,7 @@
                     notNullColumn="section_id">
             <id column="section_id" property="taskSectionId"/>
             <result column="section_title" property="sectionTitle"/>
+            <result column="section_sort" property="sortOrder"/>
             <collection property="tasks"
                         javaType="java.util.ArrayList"
                         ofType="com.godotvillage.meowkanban.domain.vo.TaskVO"
@@ -58,7 +59,15 @@
           ON br.board_id = b.id
          AND br.user_id = #{param.userId}
          AND br.deleted = 0
+        LEFT JOIN mk_board_member bm
+          ON bm.board_id = b.id
+         AND bm.user_id = #{param.userId}
+         AND bm.deleted = 0
         WHERE b.deleted = 0
+          AND (
+            b.visibility = 1
+            OR bm.role IS NOT NULL
+          )
         <if test="param.keyword != null and param.keyword != ''">
             AND (
                 b.name LIKE '%' || #{param.keyword} || '%'

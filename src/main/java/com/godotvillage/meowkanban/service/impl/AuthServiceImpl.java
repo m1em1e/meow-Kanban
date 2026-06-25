@@ -32,6 +32,7 @@ import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -62,9 +63,7 @@ public class AuthServiceImpl implements IAuthService {
     private RoleMapper roleMapper;
     @Resource
     private UserRoleMapper userRoleMapper;
-    @Resource
-    private PasswordEncoder passwordEncoder;
-    @Resource
+	@Resource
     private AuthenticationManager authenticationManager;
     @Resource
     private JwtTokenProvider jwtTokenProvider;
@@ -112,8 +111,9 @@ public class AuthServiceImpl implements IAuthService {
 
         User user = new User();
         user.setUsername(username);
-        user.setPassword(passwordEncoder.encode(param.getPassword()));
-        user.setSalt("BCrypt");
+		String salt = BCrypt.gensalt();
+		user.setPassword(BCrypt.hashpw(param.getPassword(), salt));
+		user.setSalt(salt);
         user.setNickname(param.getNickname().trim());
         user.setEmail(email);
         user.setStatus(ACTIVE_STATUS);
@@ -133,12 +133,29 @@ public class AuthServiceImpl implements IAuthService {
 
     @Override
     public LoginVO login(LoginParam param) {
-        User user = findLoginUser(param.getUsername());
+        User user;
+
+		String loginName = param.getUsername().trim();
+		if (EMAIL_PATTERN.matcher(loginName).matches()) {
+			user = userMapper.selectOne(Wrappers.<User>lambdaQuery()
+					.eq(User::getEmail, loginName)
+					.eq(User::getDeleted, 0));
+		} else {
+			user = userMapper.selectOne(Wrappers.<User>lambdaQuery()
+					.eq(User::getUsername, loginName)
+					.eq(User::getDeleted, 0));
+		}
+
         if (user == null) {
             throw new LoginFailedException("用户名或密码错误");
         }
 
         try {
+			boolean passwordRight = BCrypt.checkpw(param.getPassword(), user.getPassword());
+			if (!passwordRight) {
+				throw new LoginFailedException("用户名或密码错误");
+			}
+
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(user.getUsername(), param.getPassword()));
             SecurityContextHolder.getContext().setAuthentication(authentication);
@@ -155,19 +172,6 @@ public class AuthServiceImpl implements IAuthService {
         loginVO.setUser(toUserProfile(user));
         loginVO.setRoles(roles);
         return loginVO;
-    }
-
-    private User findLoginUser(String usernameOrEmail) {
-        String loginName = usernameOrEmail.trim();
-        if (EMAIL_PATTERN.matcher(loginName).matches()) {
-            return userMapper.selectOne(Wrappers.<User>lambdaQuery()
-                    .eq(User::getEmail, loginName)
-                    .eq(User::getDeleted, 0));
-        }
-
-        return userMapper.selectOne(Wrappers.<User>lambdaQuery()
-                .eq(User::getUsername, loginName)
-                .eq(User::getDeleted, 0));
     }
 
     @Override

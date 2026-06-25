@@ -15,5 +15,6 @@ import java.util.List;
 public class TaskSectionVO {
 	private Long taskSectionId;
 	private String sectionTitle;
+	private Integer sortOrder;
 	private List<TaskVO> tasks;
 }

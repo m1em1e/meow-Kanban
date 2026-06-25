@@ -118,6 +118,7 @@ createApp({
       sectionDragOverId: null,
       loading: false,
       loadError: "",
+      memberInfoById: {},
       sections: defaultSections.map((section) => ({ ...section })),
       tasks: defaultTasks.map((task) => ({ ...task, tags: [...task.tags] })),
       filters: [
@@ -224,7 +225,7 @@ createApp({
           headers: { Accept: "application/json" }
         });
         const result = await this.readApiResult(response, "看板详情加载失败");
-        this.applyBoardDetail(result.data);
+        await this.applyBoardDetail(result.data);
       } catch (error) {
         this.loadError = error.message || "看板详情加载失败";
         this.sections = [];
@@ -247,27 +248,26 @@ createApp({
       }
       return result;
     },
-    applyBoardDetail(detail) {
+    async applyBoardDetail(detail) {
       if (!detail) {
         throw new Error("看板详情加载失败");
       }
 
       this.boardName = detail.boardTitle || `看板 #${this.boardId}`;
-      const memberIds = Array.isArray(detail.memberIds) ? detail.memberIds : [];
-      this.members = memberIds.map((id) => {
-        const name = `成员 #${id}`;
-        return {
-          name,
-          shortName: this.createShortName(name),
-          role: "成员",
-          activeAt: "已加入",
-          accent: this.avatarAccent(name)
-        };
-      });
+      const memberIds = this.normalizeIdList(detail.memberIds);
+      const memberInfos = await this.fetchMemberInfoList(memberIds);
+      this.memberInfoById = memberInfos.reduce((lookup, member) => {
+        lookup[String(member.id)] = member;
+        return lookup;
+      }, {});
+      this.members = memberIds.map((id) => this.normalizeMemberInfo(
+        this.memberInfoById[String(id)] || { id }
+      ));
       const sectionVOS = Array.isArray(detail.sectionVOS) ? detail.sectionVOS : [];
       this.sections = sectionVOS.map((section) => ({
         id: String(section.taskSectionId),
-        name: section.sectionTitle || "未命名分区"
+        name: section.sectionTitle || "未命名分区",
+        sortOrder: Number(section.sortOrder)
       }));
       this.tasks = sectionVOS.flatMap((section) => {
         const sectionId = String(section.taskSectionId);
@@ -276,9 +276,70 @@ createApp({
       });
       this.selectedTaskId = null;
     },
+    async fetchMemberInfoList(memberIds) {
+      if (!memberIds.length) {
+        return [];
+      }
+
+      const apiFetch = window.MeowKanbanAuth?.fetch || fetch;
+      const params = new URLSearchParams();
+      params.set("boardId", this.boardId);
+      memberIds.forEach((id) => params.append("userIds", id));
+      const response = await apiFetch(`/api/v1/user/info-list?${params.toString()}`, {
+        headers: { Accept: "application/json" }
+      });
+      const result = await this.readApiResult(response, "成员信息加载失败");
+      return Array.isArray(result.data) ? result.data : [];
+    },
+    normalizeIdList(ids) {
+      if (!Array.isArray(ids)) {
+        return [];
+      }
+
+      return Array.from(new Set(ids
+        .map((id) => Number(id))
+        .filter((id) => Number.isFinite(id))));
+    },
+    normalizeMemberInfo(member) {
+      const id = member?.id;
+      const name = member?.nickname || `成员 #${id}`;
+      return {
+        id,
+        name,
+        shortName: this.createShortName(name),
+        role: this.boardRoleLabel(member?.boardRoleCode || member?.BoardRoleCode),
+        activeAt: "已加入",
+        accent: this.avatarAccent(id || name),
+        avatarResourceId: member?.avatarResourceId || null,
+        avatarUrl: this.resourceUrl(member?.avatarResourceId)
+      };
+    },
+    boardRoleLabel(roleCode) {
+      const labels = {
+        owner: "拥有者",
+        admin: "管理员",
+        member: "成员",
+        viewer: "只读"
+      };
+      return labels[String(roleCode || "").toLowerCase()] || "成员";
+    },
+    memberNameById(userId) {
+      return this.normalizeMemberInfo(
+        this.memberInfoById[String(userId)] || { id: userId }
+      ).name;
+    },
+    memberAvatarUrlById(userId) {
+      return this.normalizeMemberInfo(
+        this.memberInfoById[String(userId)] || { id: userId }
+      ).avatarUrl;
+    },
+    resourceUrl(resourceId) {
+      return resourceId ? `/api/v1/resource/${encodeURIComponent(resourceId)}` : "";
+    },
     normalizeRemoteTask(task, sectionId) {
       const referUserIds = Array.isArray(task.referUserIds) ? task.referUserIds : [];
-      const owner = referUserIds.length > 0 ? `成员 #${referUserIds[0]}` : "未指派";
+      const ownerId = referUserIds[0];
+      const owner = referUserIds.length > 0 ? this.memberNameById(ownerId) : "未指派";
       return {
         id: String(task.taskId),
         code: task.taskNo || `TASK-${task.taskId}`,
@@ -290,6 +351,7 @@ createApp({
         owner,
         ownerShortName: this.createShortName(owner),
         ownerAccent: this.avatarAccent(owner),
+        ownerAvatarUrl: ownerId ? this.memberAvatarUrlById(ownerId) : "",
         due: this.formatDate(task.dueDate),
         tags: Array.isArray(task.tags) ? task.tags : []
       };
@@ -473,7 +535,7 @@ createApp({
         this.sectionDragOverId = null;
       }
     },
-    dropSection(targetSectionId, event) {
+    async dropSection(targetSectionId, event) {
       event?.preventDefault();
       if (!this.draggedSectionId || this.draggedTaskId) {
         return;
@@ -482,8 +544,19 @@ createApp({
       const fromIndex = this.sections.findIndex((section) => section.id === this.draggedSectionId);
       const toIndex = this.sections.findIndex((section) => section.id === targetSectionId);
       if (fromIndex >= 0 && toIndex >= 0 && fromIndex !== toIndex) {
+        const sourceSort = this.sectionSortAt(fromIndex);
+        const targetSort = this.sectionSortAt(toIndex);
+        const previousSections = this.sections.map((section) => ({ ...section }));
         const [movedSection] = this.sections.splice(fromIndex, 1);
         this.sections.splice(toIndex, 0, movedSection);
+        this.refreshSectionSortOrders();
+
+        try {
+          await this.modifySectionSort(sourceSort, targetSort);
+        } catch (error) {
+          this.sections = previousSections;
+          window.alert(error.message || "分区顺序保存失败");
+        }
       }
       this.endSectionDrag();
     },
@@ -491,18 +564,84 @@ createApp({
       this.draggedSectionId = null;
       this.sectionDragOverId = null;
     },
-    addSection() {
+    sectionSortAt(index) {
+      const sortOrder = Number(this.sections[index]?.sortOrder);
+      return Number.isFinite(sortOrder) ? sortOrder : (index + 1) * 10;
+    },
+    refreshSectionSortOrders() {
+      this.sections.forEach((section, index) => {
+        section.sortOrder = (index + 1) * 10;
+      });
+    },
+    async modifySectionSort(sourceSort, targetSort) {
+      if (useMockBoardDetail) {
+        return;
+      }
+
+      const apiFetch = window.MeowKanbanAuth?.fetch || fetch;
+      const response = await apiFetch("/api/v1/board/modify-section-card", {
+        method: "PUT",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          boardId: Number(this.boardId),
+          sourceSort,
+          targetSort
+        })
+      });
+      await this.readApiResult(response, "分区顺序保存失败");
+    },
+    nextSectionSort() {
+      const maxSortOrder = this.sections.reduce((max, section, index) => {
+        const sortOrder = Number(section.sortOrder);
+        return Math.max(max, Number.isFinite(sortOrder) ? sortOrder : (index + 1) * 10);
+      }, 0);
+      return maxSortOrder + 10;
+    },
+    async addSection() {
       const name = this.newSectionName.trim();
       if (!name) {
         return;
       }
 
+      const sortOrder = this.nextSectionSort();
+      if (!useMockBoardDetail) {
+        try {
+          await this.addSectionCard(name, sortOrder);
+          this.newSectionName = "";
+          this.sectionMenuOpen = false;
+          await this.loadBoardDetail();
+        } catch (error) {
+          window.alert(error.message || "分区创建失败");
+        }
+        return;
+      }
+
       this.sections.push({
         id: this.createSectionId(name),
-        name
+        name,
+        sortOrder
       });
       this.newSectionName = "";
       this.sectionMenuOpen = false;
+    },
+    async addSectionCard(boardName, sort) {
+      const apiFetch = window.MeowKanbanAuth?.fetch || fetch;
+      const response = await apiFetch("/api/v1/board/add-section-card", {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          boardId: Number(this.boardId),
+          boardName,
+          sort
+        })
+      });
+      await this.readApiResult(response, "分区创建失败");
     },
     createSectionId(name) {
       const base = name

@@ -1,14 +1,18 @@
 package com.godotvillage.meowkanban;
 
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import cn.hutool.extra.pinyin.PinyinUtil;
 import com.godotvillage.meowkanban.common.result.PageResult;
+import com.godotvillage.meowkanban.common.util.LoginUtil;
 import com.godotvillage.meowkanban.domain.entity.MailCaptcha;
+import com.godotvillage.meowkanban.domain.entity.Task;
 import com.godotvillage.meowkanban.domain.entity.User;
 import com.godotvillage.meowkanban.domain.param.BoardInfoQueryParam;
 import com.godotvillage.meowkanban.domain.param.IdParam;
 import com.godotvillage.meowkanban.domain.param.LoginParam;
 import com.godotvillage.meowkanban.domain.param.RegisterParam;
 import com.godotvillage.meowkanban.domain.param.UserProfileUpdateParam;
+import com.godotvillage.meowkanban.domain.vo.TaskCardAddParam;
 import com.godotvillage.meowkanban.domain.vo.BoardDetailVO;
 import com.godotvillage.meowkanban.domain.vo.BoardInfoVO;
 import com.godotvillage.meowkanban.domain.vo.FileResourceContentVO;
@@ -20,10 +24,13 @@ import com.godotvillage.meowkanban.mapper.UserMapper;
 import com.godotvillage.meowkanban.service.IAuthService;
 import com.godotvillage.meowkanban.service.IBoardService;
 import com.godotvillage.meowkanban.service.IFileResourceService;
+import com.godotvillage.meowkanban.service.ITaskService;
 import com.godotvillage.meowkanban.service.IUserService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -32,6 +39,7 @@ import org.springframework.mock.web.MockMultipartFile;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Locale;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -51,6 +59,8 @@ class MeowKanbanApplicationTests {
     @Autowired
     private IFileResourceService fileResourceService;
     @Autowired
+    private ITaskService taskService;
+    @Autowired
     private IUserService userService;
     @Autowired
     private UserMapper userMapper;
@@ -61,6 +71,11 @@ class MeowKanbanApplicationTests {
 
     @Test
     void contextLoads() {
+    }
+
+    @Test
+    void chineseSectionTitleCanGeneratePinyinInitials() {
+        assertEquals("DFB", PinyinUtil.getFirstLetter("待发布", "").toUpperCase(Locale.ROOT));
     }
 
     @Test
@@ -84,6 +99,34 @@ class MeowKanbanApplicationTests {
         assertEquals(1L, result.getPageIndex());
         assertEquals(10L, result.getPageSize());
         assertTrue(result.getRecords().size() <= 10);
+    }
+
+    @Test
+    void listBoardInfoOnlyShowsPrivateBoardsToMembers() {
+        SecurityContextHolder.clearContext();
+        BoardInfoQueryParam anonymousParam = new BoardInfoQueryParam();
+        anonymousParam.setPageIndex(1);
+        anonymousParam.setPageSize(10);
+
+        PageResult<BoardInfoVO> anonymousResult = boardService.listBoardInfo(anonymousParam);
+
+        assertTrue(anonymousResult.getRecords().stream()
+                .noneMatch(board -> Long.valueOf(1L).equals(board.getId())));
+
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken("admin", null, java.util.List.of()));
+        try {
+            BoardInfoQueryParam memberParam = new BoardInfoQueryParam();
+            memberParam.setPageIndex(1);
+            memberParam.setPageSize(10);
+
+            PageResult<BoardInfoVO> memberResult = boardService.listBoardInfo(memberParam);
+
+            assertTrue(memberResult.getRecords().stream()
+                    .anyMatch(board -> Long.valueOf(1L).equals(board.getId())));
+        } finally {
+            SecurityContextHolder.clearContext();
+        }
     }
 
     @Test
@@ -116,6 +159,59 @@ class MeowKanbanApplicationTests {
         assertFalse(firstTask.getTags().isEmpty());
         assertNotNull(firstTask.getReferUserIds());
         assertFalse(firstTask.getReferUserIds().isEmpty());
+    }
+
+    @Test
+    @Transactional
+    void addTaskCardGeneratesNextBoardTaskNoAndDefaults() {
+        int maxTaskNo = taskService.list(Wrappers.<Task>lambdaQuery()
+                        .select(Task::getTaskNo)
+                        .eq(Task::getBoardId, 1L))
+                .stream()
+                .map(Task::getTaskNo)
+                .map(this::parseTaskNo)
+                .filter(java.util.Objects::nonNull)
+                .max(Integer::compareTo)
+                .orElse(0);
+        int maxSort = taskService.list(Wrappers.<Task>lambdaQuery()
+                        .select(Task::getSortOrder)
+                        .eq(Task::getBoardId, 1L)
+                        .eq(Task::getSectionId, 1L))
+                .stream()
+                .map(Task::getSortOrder)
+                .filter(java.util.Objects::nonNull)
+                .max(Integer::compareTo)
+                .orElse(0);
+
+        String title = "新增任务测试-" + System.nanoTime();
+        TaskCardAddParam param = new TaskCardAddParam();
+        param.setBoardId(1L);
+        param.setSectionId(1L);
+        param.setTitle(title);
+
+        taskService.addTaskCard(param, 1L);
+
+        Task savedTask = taskService.getOne(Wrappers.<Task>lambdaQuery()
+                .eq(Task::getBoardId, 1L)
+                .eq(Task::getTitle, title));
+        assertNotNull(savedTask);
+        assertEquals("MK-" + (maxTaskNo + 1), savedTask.getTaskNo());
+        assertEquals(1, savedTask.getPriority());
+        assertEquals(0, savedTask.getBlocked());
+        assertEquals(maxSort + 10, savedTask.getSortOrder());
+        assertEquals(1L, savedTask.getCreaterId());
+        assertEquals(1L, savedTask.getUpdaterId());
+    }
+
+    private Integer parseTaskNo(String taskNo) {
+        if (taskNo == null || !taskNo.startsWith("MK-")) {
+            return null;
+        }
+        try {
+            return Integer.parseInt(taskNo.substring(3));
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 
     @Test
@@ -214,6 +310,7 @@ class MeowKanbanApplicationTests {
 
         LoginVO loginVO = authService.login(loginParam);
         assertTrue(loginVO.getRoles().contains("ROLE_USER"));
+        assertEquals(user.getId(), LoginUtil.getLoginId());
 
         LoginParam emailLoginParam = new LoginParam();
         emailLoginParam.setUsername(email);
@@ -222,5 +319,6 @@ class MeowKanbanApplicationTests {
         LoginVO emailLoginVO = authService.login(emailLoginParam);
         assertEquals(user.getId(), emailLoginVO.getUser().getId());
         assertTrue(emailLoginVO.getRoles().contains("ROLE_USER"));
+        SecurityContextHolder.clearContext();
     }
 }

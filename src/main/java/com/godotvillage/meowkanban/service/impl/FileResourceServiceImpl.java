@@ -1,20 +1,15 @@
 package com.godotvillage.meowkanban.service.impl;
 
-import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.godotvillage.meowkanban.common.exception.BaseException;
+import com.godotvillage.meowkanban.common.util.LoginUtil;
 import com.godotvillage.meowkanban.domain.entity.FileResource;
-import com.godotvillage.meowkanban.domain.entity.User;
 import com.godotvillage.meowkanban.domain.vo.FileResourceContentVO;
 import com.godotvillage.meowkanban.domain.vo.FileResourceInfoVO;
 import com.godotvillage.meowkanban.mapper.FileResourceMapper;
-import com.godotvillage.meowkanban.mapper.UserMapper;
 import com.godotvillage.meowkanban.service.IFileResourceService;
-import jakarta.annotation.Resource;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.FileSystemResource;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -34,9 +29,6 @@ public class FileResourceServiceImpl extends ServiceImpl<FileResourceMapper, Fil
 
     @Value("${meow-kanban.resource.storage-dir:data/resources}")
     private String storageDir;
-
-    @Resource
-    private UserMapper userMapper;
 
     @Override
     @Transactional
@@ -67,7 +59,7 @@ public class FileResourceServiceImpl extends ServiceImpl<FileResourceMapper, Fil
         fileResource.setStoragePath(relativePath);
         fileResource.setContentType(file.getContentType());
         fileResource.setFileSize(file.getSize());
-        fileResource.setUploadedBy(getCurrentUserId());
+        fileResource.setUploadedBy(LoginUtil.getLoginId());
         save(fileResource);
 
         return toInfo(fileResource);
@@ -122,20 +114,4 @@ public class FileResourceServiceImpl extends ServiceImpl<FileResourceMapper, Fil
         return info;
     }
 
-    private Long getCurrentUserId() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated()) {
-            return null;
-        }
-
-        String username = authentication.getName();
-        if (!StringUtils.hasText(username) || "anonymousUser".equals(username)) {
-            return null;
-        }
-
-        User user = userMapper.selectOne(Wrappers.<User>lambdaQuery()
-                .eq(User::getUsername, username)
-                .eq(User::getDeleted, 0));
-        return user == null ? null : user.getId();
-    }
 }
