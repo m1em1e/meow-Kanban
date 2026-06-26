@@ -4,4 +4,5 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.godotvillage.meowkanban.domain.entity.BoardRecent;
 
 public interface IBoardRecentService extends IService<BoardRecent> {
+	void accessBoard(Long id, Long loginId);
 }

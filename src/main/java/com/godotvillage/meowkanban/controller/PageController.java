@@ -1,13 +1,19 @@
 package com.godotvillage.meowkanban.controller;
 
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.godotvillage.meowkanban.common.util.LoginUtil;
+import com.godotvillage.meowkanban.domain.entity.BoardRecent;
 import com.godotvillage.meowkanban.domain.entity.User;
 import com.godotvillage.meowkanban.mapper.UserMapper;
+import com.godotvillage.meowkanban.service.IBoardRecentService;
+import jakarta.annotation.Resource;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+
+import java.time.LocalDateTime;
 
 /**
  * 页面访问接口
@@ -18,11 +24,11 @@ import org.springframework.web.bind.annotation.PathVariable;
 @Controller
 public class PageController {
 
-	private final UserMapper userMapper;
+	@Resource
+	private UserMapper userMapper;
 
-	public PageController(UserMapper userMapper) {
-		this.userMapper = userMapper;
-	}
+	@Resource
+	private IBoardRecentService boardRecentService;
 
 	@GetMapping("/")
 	public String index() {
@@ -74,6 +80,7 @@ public class PageController {
 
 	@GetMapping("/detail/{id}")
 	public String detail(@PathVariable Long id, Model model) {
+		boardRecentService.accessBoard(id, LoginUtil.getLoginId());
 		model.addAttribute("boardId", id);
 		return "detail";
 	}
