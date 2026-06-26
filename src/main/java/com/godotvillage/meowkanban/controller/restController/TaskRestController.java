@@ -5,6 +5,7 @@ import com.godotvillage.meowkanban.common.util.LoginUtil;
 import com.godotvillage.meowkanban.domain.param.IdParam;
 import com.godotvillage.meowkanban.domain.param.TaskCardModifyParam;
 import com.godotvillage.meowkanban.domain.vo.TaskCardAddParam;
+import com.godotvillage.meowkanban.service.IBoardRecentService;
 import com.godotvillage.meowkanban.service.ITaskService;
 import jakarta.annotation.Resource;
 import org.springframework.web.bind.annotation.*;
@@ -29,13 +30,13 @@ public class TaskRestController {
 
 	@DeleteMapping("/del-task-card")
 	public Result delTaskCard(@RequestBody IdParam param) {
-		taskService.deleteById(new IdParam());
+		taskService.deleteById(param, LoginUtil.getLoginId());
 		return Result.success();
 	}
 
 	@PutMapping("/modify-task-card")
 	public Result modifyTaskCard(@RequestBody TaskCardModifyParam param) {
-		taskService.modifyTaskCard(param);
+		taskService.modifyTaskCard(param, LoginUtil.getLoginId());
 		return Result.success();
 	}
 

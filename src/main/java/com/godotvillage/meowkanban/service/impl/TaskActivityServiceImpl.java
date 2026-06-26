@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.godotvillage.meowkanban.common.result.PageResult;
 import com.godotvillage.meowkanban.domain.entity.TaskActivity;
 import com.godotvillage.meowkanban.domain.param.RecentActivityParam;
+import com.godotvillage.meowkanban.domain.param.TaskActivityAddParam;
 import com.godotvillage.meowkanban.domain.vo.RecentActivityVO;
 import com.godotvillage.meowkanban.mapper.TaskActivityMapper;
 import com.godotvillage.meowkanban.service.ITaskActivityService;
@@ -18,7 +19,16 @@ public class TaskActivityServiceImpl extends ServiceImpl<TaskActivityMapper, Tas
     private static final int DEFAULT_PAGE_SIZE = 10;
     private static final int MAX_PAGE_SIZE = 50;
 
-    @Override
+	@Override
+	public void addTaskActivity(TaskActivityAddParam param) {
+		TaskActivity taskActivity = new TaskActivity();
+		taskActivity.setTaskId(param.getTaskId());
+		taskActivity.setActorId(param.getLoginId());
+		taskActivity.setAction(param.getActionCode());
+		baseMapper.insert(taskActivity);
+	}
+
+	@Override
     public PageResult<RecentActivityVO> getRecentActivity(RecentActivityParam param) {
         if (param == null) {
             param = new RecentActivityParam();

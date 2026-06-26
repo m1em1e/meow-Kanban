@@ -14,7 +14,7 @@ import com.godotvillage.meowkanban.domain.vo.TaskCardAddParam;
 public interface ITaskService extends IService<Task> {
 	void addTaskCard(TaskCardAddParam param, Long loginId);
 
-	void deleteById(IdParam param);
+	void deleteById(IdParam param, Long loginId);
 
-	void modifyTaskCard(TaskCardModifyParam param);
+	void modifyTaskCard(TaskCardModifyParam param, Long loginId);
 }

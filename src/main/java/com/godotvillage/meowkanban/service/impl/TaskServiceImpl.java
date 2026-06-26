@@ -2,12 +2,15 @@ package com.godotvillage.meowkanban.service.impl;
 
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.godotvillage.meowkanban.common.exception.BaseException;
+import com.godotvillage.meowkanban.domain.enums.TaskActivityEnum;
+import com.godotvillage.meowkanban.domain.param.TaskActivityAddParam;
 import com.godotvillage.meowkanban.domain.param.TaskCardModifyParam;
 import com.godotvillage.meowkanban.domain.entity.Task;
 import com.godotvillage.meowkanban.domain.param.IdParam;
 import com.godotvillage.meowkanban.domain.vo.TaskCardAddParam;
-import com.godotvillage.meowkanban.mapper.BoardSectionMapper;
 import com.godotvillage.meowkanban.mapper.TaskMapper;
+import com.godotvillage.meowkanban.service.ITaskActivityService;
 import com.godotvillage.meowkanban.service.ITaskService;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
@@ -27,7 +30,7 @@ import java.util.Objects;
 public class TaskServiceImpl extends ServiceImpl<TaskMapper, Task> implements ITaskService {
 
 	@Resource
-	private BoardSectionMapper boardSectionMapper;
+	private ITaskActivityService taskActivityService;
 
 	@Override
 	@Transactional
@@ -46,19 +49,50 @@ public class TaskServiceImpl extends ServiceImpl<TaskMapper, Task> implements IT
 		task.setUpdaterId(loginId);
 
 		baseMapper.insert(task);
+
+		TaskActivityAddParam taskActivityAddParam = new TaskActivityAddParam();
+		taskActivityAddParam.setTaskId(task.getId());
+		taskActivityAddParam.setActionCode(TaskActivityEnum.CREATE.getCode());
+		taskActivityAddParam.setLoginId(loginId);
+		taskActivityService.addTaskActivity(taskActivityAddParam);
 	}
 
 	@Override
-	public void deleteById(IdParam param) {
+	public void deleteById(IdParam param, Long loginId) {
 		Task task = baseMapper.selectById(param.getId());
 		task.setDeleted(1);
 		task.setDeletedTime(LocalDateTime.now());
 		baseMapper.updateById(task);
+
+		TaskActivityAddParam taskActivityAddParam = new TaskActivityAddParam();
+		taskActivityAddParam.setTaskId(task.getId());
+		taskActivityAddParam.setActionCode(TaskActivityEnum.DELETE.getCode());
+		taskActivityAddParam.setLoginId(loginId);
+		taskActivityService.addTaskActivity(taskActivityAddParam);
 	}
 
 	@Override
-	public void modifyTaskCard(TaskCardModifyParam param) {
+	@Transactional
+	public void modifyTaskCard(TaskCardModifyParam param, Long loginId) {
 		Task task = baseMapper.selectById(param.getId());
+		if (task == null) {
+			throw new BaseException("任务不存在");
+		}
+
+		Long targetSectionId = param.getSectionId() == null ? task.getSectionId() : param.getSectionId();
+		boolean sectionChanged = !Objects.equals(task.getSectionId(), targetSectionId);
+		boolean sortChanged = param.getSort() != null && !Objects.equals(task.getSortOrder(), param.getSort());
+
+		TaskActivityAddParam taskActivityAddParam = new TaskActivityAddParam();
+		taskActivityAddParam.setTaskId(task.getId());
+		if (sectionChanged || sortChanged) {
+			taskActivityAddParam.setActionCode(TaskActivityEnum.MOVE.getCode());
+		} else {
+			taskActivityAddParam.setActionCode(TaskActivityEnum.UPDATE.getCode());
+		}
+		taskActivityAddParam.setLoginId(loginId);
+		taskActivityService.addTaskActivity(taskActivityAddParam);
+
 		if (param.getSectionId() != null) {
 			task.setSectionId(param.getSectionId());
 		}
@@ -78,9 +112,22 @@ public class TaskServiceImpl extends ServiceImpl<TaskMapper, Task> implements IT
 			task.setBlocked(param.getBlocked());
 		}
 		if (param.getSort() != null) {
+			if (sectionChanged || sortChanged) {
+				shiftTaskSortOrders(task.getBoardId(), targetSectionId, task.getId(), param.getSort());
+			}
 			task.setSortOrder(param.getSort());
 		}
 		baseMapper.updateById(task);
+	}
+
+	private void shiftTaskSortOrders(Long boardId, Long sectionId, Long excludeTaskId, Integer targetSortOrder) {
+		baseMapper.update(null, Wrappers.<Task>lambdaUpdate()
+				.setSql("sort_order = sort_order + 1")
+				.eq(Task::getBoardId, boardId)
+				.eq(Task::getSectionId, sectionId)
+				.ge(Task::getSortOrder, targetSortOrder)
+				.ne(Task::getId, excludeTaskId)
+				.eq(Task::getDeleted, 0));
 	}
 
 	private String createNextTaskNo(Long boardId) {
