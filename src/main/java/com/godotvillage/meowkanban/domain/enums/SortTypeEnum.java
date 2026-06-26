@@ -1,5 +1,8 @@
 package com.godotvillage.meowkanban.domain.enums;
 
+import lombok.Getter;
+
+@Getter
 public enum SortTypeEnum {
 
     ASC("升序", 1, "按指定字段升序排序"),
@@ -17,15 +20,4 @@ public enum SortTypeEnum {
         this.desc = desc;
     }
 
-    public String getName() {
-        return name;
-    }
-
-    public Integer getCode() {
-        return code;
-    }
-
-    public String getDesc() {
-        return desc;
-    }
 }
