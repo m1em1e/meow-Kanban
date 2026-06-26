@@ -11,6 +11,7 @@ import com.godotvillage.meowkanban.domain.param.BoardInfoQueryParam;
 import com.godotvillage.meowkanban.domain.param.IdParam;
 import com.godotvillage.meowkanban.domain.param.LoginParam;
 import com.godotvillage.meowkanban.domain.param.RegisterParam;
+import com.godotvillage.meowkanban.domain.param.TaskCardModifyParam;
 import com.godotvillage.meowkanban.domain.param.UserProfileUpdateParam;
 import com.godotvillage.meowkanban.domain.vo.TaskCardAddParam;
 import com.godotvillage.meowkanban.domain.vo.BoardDetailVO;
@@ -203,6 +204,43 @@ class MeowKanbanApplicationTests {
         assertEquals(1L, savedTask.getUpdaterId());
     }
 
+    @Test
+    @Transactional
+    void modifyTaskCardShiftsTargetSectionSortsFromTargetPosition() {
+        Long boardId = 1L;
+        Long sourceSectionId = 2L;
+        Long targetSectionId = 1L;
+        String marker = Long.toString(System.nanoTime(), 36);
+
+        Task movingTask = createTask(boardId, sourceSectionId, "M0-" + marker, "移动任务-" + marker, 99);
+        taskService.save(movingTask);
+
+        Task firstTask = createTask(boardId, targetSectionId, "M1-" + marker, "排序任务1-" + marker, 1);
+        Task secondTask = createTask(boardId, targetSectionId, "M2-" + marker, "排序任务2-" + marker, 2);
+        Task thirdTask = createTask(boardId, targetSectionId, "M3-" + marker, "排序任务3-" + marker, 3);
+        Task fourthTask = createTask(boardId, targetSectionId, "M4-" + marker, "排序任务4-" + marker, 4);
+        Task fifthTask = createTask(boardId, targetSectionId, "M5-" + marker, "排序任务5-" + marker, 5);
+        Task sixthTask = createTask(boardId, targetSectionId, "M6-" + marker, "排序任务6-" + marker, 6);
+        taskService.saveBatch(java.util.List.of(firstTask, secondTask, thirdTask, fourthTask, fifthTask, sixthTask));
+
+        TaskCardModifyParam param = new TaskCardModifyParam();
+        param.setId(movingTask.getId());
+        param.setSectionId(targetSectionId);
+        param.setSort(4);
+
+        taskService.modifyTaskCard(param, 1L);
+
+        Task movedTask = taskService.getById(movingTask.getId());
+        assertEquals(targetSectionId, movedTask.getSectionId());
+        assertEquals(4, movedTask.getSortOrder());
+        assertEquals(1, taskService.getById(firstTask.getId()).getSortOrder());
+        assertEquals(2, taskService.getById(secondTask.getId()).getSortOrder());
+        assertEquals(3, taskService.getById(thirdTask.getId()).getSortOrder());
+        assertEquals(5, taskService.getById(fourthTask.getId()).getSortOrder());
+        assertEquals(6, taskService.getById(fifthTask.getId()).getSortOrder());
+        assertEquals(7, taskService.getById(sixthTask.getId()).getSortOrder());
+    }
+
     private Integer parseTaskNo(String taskNo) {
         if (taskNo == null || !taskNo.startsWith("MK-")) {
             return null;
@@ -212,6 +250,20 @@ class MeowKanbanApplicationTests {
         } catch (NumberFormatException e) {
             return null;
         }
+    }
+
+    private Task createTask(Long boardId, Long sectionId, String taskNo, String title, Integer sortOrder) {
+        Task task = new Task();
+        task.setBoardId(boardId);
+        task.setSectionId(sectionId);
+        task.setTaskNo(taskNo);
+        task.setTitle(title);
+        task.setPriority(1);
+        task.setBlocked(0);
+        task.setSortOrder(sortOrder);
+        task.setCreaterId(1L);
+        task.setUpdaterId(1L);
+        return task;
     }
 
     @Test
