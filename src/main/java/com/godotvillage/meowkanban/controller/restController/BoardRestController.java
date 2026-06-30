@@ -60,6 +60,12 @@ public class BoardRestController {
 		return Result.success();
 	}
 
+	@PutMapping("/rename-section-card")
+	public Result renameSectionCard(@RequestBody BoardSectionModifyParam param) {
+		boardSectionService.renameSectionCard(param);
+		return Result.success();
+	}
+
 	@DeleteMapping("/del-section-card")
 	public Result deleteSectionCard(@RequestBody IdParam param) {
 		boardSectionService.deleteById(param.getId());

@@ -19,6 +19,7 @@ const mockBoards = [
     name: "MeowKanban",
     description: "轻量项目看板，覆盖产品、前端、后端和测试任务。",
     visibility: 0,
+    favorited: true,
     role: "owner",
     updatedAt: "今天 16:20"
   },
@@ -27,6 +28,7 @@ const mockBoards = [
     name: "移动端改版",
     description: "注册、登录、任务详情和移动端信息架构整理。",
     visibility: 0,
+    favorited: false,
     role: "admin",
     updatedAt: "昨天 18:05"
   },
@@ -157,6 +159,7 @@ createApp({
         coverFile: null,
         coverPreviewUrl: ""
       },
+      favoriteSavingIds: [],
       searchTimer: null
     };
   },
@@ -487,6 +490,7 @@ createApp({
         coverUrl,
         visibility,
         role,
+        favorited: Boolean(board.favorited),
         updatedAt: board.updatedAt || "最近活动",
         accent: accentClasses[this.accentIndex(id)],
         href: createBoardHref(id),
@@ -527,6 +531,44 @@ createApp({
         viewer: "blocked"
       };
       return classes[role] || "";
+    },
+    isFavoriteSaving(boardId) {
+      return this.favoriteSavingIds.includes(String(boardId));
+    },
+    async toggleFavorite(board) {
+      if (this.isFavoriteSaving(board.id)) {
+        return;
+      }
+
+      const nextFavorited = !board.favorited;
+      if (useMockBoards) {
+        board.favorited = nextFavorited;
+        const target = mockBoards.find((item) => String(item.id) === String(board.id));
+        if (target) {
+          target.favorited = nextFavorited;
+        }
+        return;
+      }
+
+      this.favoriteSavingIds.push(String(board.id));
+      board.favorited = nextFavorited;
+      try {
+        const apiFetch = window.MeowKanbanAuth?.fetch || fetch;
+        const response = await apiFetch(nextFavorited ? "/api/v1/favorite/add-favorite" : "/api/v1/favorite/del-favorite", {
+          method: nextFavorited ? "POST" : "DELETE",
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ id: Number(board.id) })
+        });
+        await this.readApiResult(response, nextFavorited ? "收藏失败" : "取消收藏失败");
+      } catch (error) {
+        board.favorited = !nextFavorited;
+        this.loadError = error.message || (nextFavorited ? "收藏失败" : "取消收藏失败");
+      } finally {
+        this.favoriteSavingIds = this.favoriteSavingIds.filter((id) => id !== String(board.id));
+      }
     }
   }
 }).mount("#boardListApp");

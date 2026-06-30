@@ -108,6 +108,16 @@
           </div>
         </div>
         <div class="board-row-meta">
+          <button
+            class="favorite-button"
+            :class="{ active: board.favorited }"
+            type="button"
+            :disabled="isFavoriteSaving(board.id)"
+            :aria-label="board.favorited ? '取消收藏' : '收藏看板'"
+            :title="board.favorited ? '已收藏' : '收藏看板'"
+            @click="toggleFavorite(board)"
+            v-text="board.favorited ? '★' : '☆'"
+          ></button>
           <span v-text="board.updatedAt"></span>
           <a class="button primary boards-open-button" :href="board.href">打开</a>
         </div>

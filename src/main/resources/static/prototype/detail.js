@@ -111,6 +111,8 @@ createApp({
       userMenuOpen: false,
       sidebarCollapsed: false,
       newSectionName: "",
+      sectionRenameOpenId: null,
+      sectionRenameName: "",
       selectedTaskId: null,
       draggedTaskId: null,
       dragOverSection: null,
@@ -201,6 +203,7 @@ createApp({
       const target = event.target;
       this.filterOpen = this.isClickInside(target, ".search-filter") ? this.filterOpen : false;
       this.sectionMenuOpen = this.isClickInside(target, ".section-manager") ? this.sectionMenuOpen : false;
+      this.sectionRenameOpenId = this.isClickInside(target, ".section-rename-manager") ? this.sectionRenameOpenId : null;
       this.memberMenuOpen = this.isClickInside(target, ".member-menu") ? this.memberMenuOpen : false;
       this.userMenuOpen = this.isClickInside(target, ".user-menu") ? this.userMenuOpen : false;
     },
@@ -208,7 +211,25 @@ createApp({
       return target instanceof Element && Boolean(target.closest(selector));
     },
     tasksBySection(sectionId) {
-      return this.tasks.filter((task) => task.status === sectionId && this.matchesTask(task));
+      return this.sortTasks(this.tasks.filter((task) => task.status === sectionId && this.matchesTask(task)));
+    },
+    sortTasks(tasks) {
+      return [...tasks].sort((left, right) => {
+        const leftSort = Number(left.sort) || 0;
+        const rightSort = Number(right.sort) || 0;
+        if (leftSort !== rightSort) {
+          return leftSort - rightSort;
+        }
+        return this.compareTaskId(left.id, right.id);
+      });
+    },
+    compareTaskId(leftId, rightId) {
+      const leftNumber = Number(leftId);
+      const rightNumber = Number(rightId);
+      if (Number.isFinite(leftNumber) && Number.isFinite(rightNumber)) {
+        return leftNumber - rightNumber;
+      }
+      return String(leftId).localeCompare(String(rightId));
     },
     async loadBoardDetail() {
       if (useMockBoardDetail) {
@@ -353,7 +374,8 @@ createApp({
         ownerAccent: this.avatarAccent(owner),
         ownerAvatarUrl: ownerId ? this.memberAvatarUrlById(ownerId) : "",
         due: this.formatDate(task.dueDate),
-        tags: Array.isArray(task.tags) ? task.tags : []
+        tags: Array.isArray(task.tags) ? task.tags : [],
+        sort: Number(task.sort) || 0
       };
     },
     createShortName(name) {
@@ -486,7 +508,7 @@ createApp({
       }
       this.dragOverSection = null;
     },
-    dropTask(sectionId, event) {
+    async dropTask(sectionId, event) {
       if (this.draggedSectionId && !this.draggedTaskId) {
         event?.stopPropagation();
         this.dropSection(sectionId, event);
@@ -495,17 +517,89 @@ createApp({
       event?.preventDefault();
       event?.stopPropagation();
       const task = this.tasks.find((item) => item.id === this.draggedTaskId);
-      if (task) {
-        task.status = sectionId;
+      if (!task) {
+        this.endTaskDrag();
+        return;
       }
-      this.endTaskDrag();
+
+      const previousSectionId = task.status;
+      const previousSort = task.sort;
+      const previousTasks = this.tasks.map((item) => ({ ...item, tags: [...(item.tags || [])] }));
+      const nextSort = this.taskDropSort(sectionId, event);
+      if (previousSectionId === sectionId && Number(previousSort) === nextSort) {
+        this.endTaskDrag();
+        return;
+      }
+
+      if (useMockBoardDetail) {
+        this.applyTaskDrop(task.id, sectionId, nextSort);
+        this.endTaskDrag();
+        return;
+      }
+
+      this.applyTaskDrop(task.id, sectionId, nextSort);
+      try {
+        await this.modifyTaskCard({
+          id: Number(task.id),
+          sectionId: Number(sectionId),
+          sort: nextSort
+        });
+      } catch (error) {
+        this.tasks = previousTasks;
+        window.alert(error.message || "任务移动失败");
+      } finally {
+        this.endTaskDrag();
+      }
+    },
+    taskDropSort(sectionId, event) {
+      const orderedTasks = this.sortTasks(this.tasks.filter((task) => task.status === sectionId && task.id !== this.draggedTaskId));
+      const targetCard = event?.target instanceof Element ? event.target.closest(".task-card") : null;
+      const listElement = event?.currentTarget instanceof Element ? event.currentTarget : null;
+      const targetTaskId = targetCard && listElement?.contains(targetCard) ? targetCard.dataset.id : null;
+
+      if (targetTaskId === this.draggedTaskId) {
+        const task = this.tasks.find((item) => item.id === this.draggedTaskId);
+        return Number(task?.sort) || 0;
+      }
+
+      if (!targetTaskId) {
+        return this.nextTaskSort(sectionId, this.draggedTaskId);
+      }
+
+      const targetIndex = orderedTasks.findIndex((item) => item.id === targetTaskId);
+      if (targetIndex === -1) {
+        return this.nextTaskSort(sectionId, this.draggedTaskId);
+      }
+
+      const rect = targetCard.getBoundingClientRect();
+      const insertBeforeTarget = event.clientY < rect.top + rect.height / 2;
+      const insertIndex = insertBeforeTarget ? targetIndex : targetIndex + 1;
+      const nextTask = orderedTasks[insertIndex];
+
+      if (!nextTask) {
+        return this.nextTaskSort(sectionId, this.draggedTaskId);
+      }
+      return Number(nextTask.sort) || 0;
+    },
+    applyTaskDrop(taskId, sectionId, nextSort) {
+      const task = this.tasks.find((item) => item.id === taskId);
+      if (!task) {
+        return;
+      }
+      this.tasks.forEach((item) => {
+        if (item.id !== taskId && item.status === sectionId && (Number(item.sort) || 0) >= nextSort) {
+          item.sort = (Number(item.sort) || 0) + 1;
+        }
+      });
+      task.status = sectionId;
+      task.sort = nextSort;
     },
     endTaskDrag() {
       this.draggedTaskId = null;
       this.dragOverSection = null;
     },
     startSectionDrag(sectionId, event) {
-      if (event?.target instanceof Element && event.target.closest("button")) {
+      if (event?.target instanceof Element && event.target.closest("button, input, textarea, select, .section-menu")) {
         event.preventDefault();
         return;
       }
@@ -600,6 +694,11 @@ createApp({
       }, 0);
       return maxSortOrder + 10;
     },
+    nextTaskSort(sectionId, excludeTaskId = null) {
+      return this.tasks
+        .filter((task) => task.status === sectionId && task.id !== excludeTaskId)
+        .reduce((max, task) => Math.max(max, Number(task.sort) || 0), 0) + 10;
+    },
     async addSection() {
       const name = this.newSectionName.trim();
       if (!name) {
@@ -626,6 +725,47 @@ createApp({
       });
       this.newSectionName = "";
       this.sectionMenuOpen = false;
+    },
+    openRenameSectionMenu(sectionId) {
+      const section = this.sections.find((item) => item.id === sectionId);
+      if (!section) {
+        return;
+      }
+      if (this.sectionRenameOpenId === sectionId) {
+        this.sectionRenameOpenId = null;
+        return;
+      }
+      this.sectionMenuOpen = false;
+      this.sectionRenameOpenId = sectionId;
+      this.sectionRenameName = section.name;
+    },
+    async submitRenameSection(sectionId) {
+      const section = this.sections.find((item) => item.id === sectionId);
+      const nextName = this.sectionRenameName.trim();
+      if (!section || !nextName) {
+        return;
+      }
+
+      if (nextName === section.name) {
+        this.sectionRenameOpenId = null;
+        return;
+      }
+
+      if (!useMockBoardDetail) {
+        try {
+          await this.renameSectionCard(section.id, nextName);
+          this.sectionRenameOpenId = null;
+          this.sectionRenameName = "";
+          await this.loadBoardDetail();
+        } catch (error) {
+          window.alert(error.message || "分区重命名失败");
+        }
+        return;
+      }
+
+      section.name = nextName;
+      this.sectionRenameOpenId = null;
+      this.sectionRenameName = "";
     },
     async addSectionCard(boardName, sort) {
       const apiFetch = window.MeowKanbanAuth?.fetch || fetch;
@@ -656,18 +796,7 @@ createApp({
       }
       return candidate;
     },
-    renameSection(sectionId) {
-      const section = this.sections.find((item) => item.id === sectionId);
-      if (!section) {
-        return;
-      }
-
-      const nextName = window.prompt("分区名称", section.name);
-      if (nextName && nextName.trim()) {
-        section.name = nextName.trim();
-      }
-    },
-    deleteSection(sectionId) {
+    async deleteSection(sectionId) {
       if (this.sections.length <= 1) {
         window.alert("至少保留一个分区");
         return;
@@ -679,6 +808,17 @@ createApp({
       }
 
       const fallbackId = this.sections.find((item) => item.id !== sectionId)?.id;
+      if (!useMockBoardDetail) {
+        try {
+          await this.moveTasksBeforeDeletingSection(sectionId, fallbackId);
+          await this.deleteSectionCard(sectionId);
+          await this.loadBoardDetail();
+        } catch (error) {
+          window.alert(error.message || "分区删除失败");
+        }
+        return;
+      }
+
       this.tasks.forEach((task) => {
         if (task.status === sectionId) {
           task.status = fallbackId;
@@ -686,9 +826,19 @@ createApp({
       });
       this.sections = this.sections.filter((item) => item.id !== sectionId);
     },
-    createTask(sectionId) {
+    async createTask(sectionId) {
       const title = window.prompt("任务标题");
       if (!title || !title.trim()) {
+        return;
+      }
+
+      if (!useMockBoardDetail) {
+        try {
+          await this.addTaskCard(sectionId, title.trim());
+          await this.loadBoardDetail();
+        } catch (error) {
+          window.alert(error.message || "任务创建失败");
+        }
         return;
       }
 
@@ -707,6 +857,102 @@ createApp({
         due: "待定",
         tags: ["新任务"]
       });
+    },
+    async addTaskCard(sectionId, title) {
+      const apiFetch = window.MeowKanbanAuth?.fetch || fetch;
+      const response = await apiFetch("/api/v1/task/add-task-card", {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          boardId: Number(this.boardId),
+          sectionId: Number(sectionId),
+          title,
+          sort: this.nextTaskSort(sectionId)
+        })
+      });
+      await this.readApiResult(response, "任务创建失败");
+    },
+    async modifyTaskCard(payload) {
+      const apiFetch = window.MeowKanbanAuth?.fetch || fetch;
+      const response = await apiFetch("/api/v1/task/modify-task-card", {
+        method: "PUT",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
+      });
+      await this.readApiResult(response, "任务保存失败");
+    },
+    async deleteTask(taskId) {
+      const task = this.tasks.find((item) => item.id === taskId);
+      if (!task || !window.confirm(`删除「${task.title}」任务？`)) {
+        return;
+      }
+
+      if (useMockBoardDetail) {
+        this.tasks = this.tasks.filter((item) => item.id !== taskId);
+        this.closeDrawer();
+        return;
+      }
+
+      try {
+        const apiFetch = window.MeowKanbanAuth?.fetch || fetch;
+        const response = await apiFetch("/api/v1/task/del-task-card", {
+          method: "DELETE",
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ id: Number(taskId) })
+        });
+        await this.readApiResult(response, "任务删除失败");
+        this.closeDrawer();
+        await this.loadBoardDetail();
+      } catch (error) {
+        window.alert(error.message || "任务删除失败");
+      }
+    },
+    async renameSectionCard(sectionId, title) {
+      const apiFetch = window.MeowKanbanAuth?.fetch || fetch;
+      const response = await apiFetch("/api/v1/board/rename-section-card", {
+        method: "PUT",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          id: Number(sectionId),
+          title
+        })
+      });
+      await this.readApiResult(response, "分区重命名失败");
+    },
+    async deleteSectionCard(sectionId) {
+      const apiFetch = window.MeowKanbanAuth?.fetch || fetch;
+      const response = await apiFetch("/api/v1/board/del-section-card", {
+        method: "DELETE",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ id: Number(sectionId) })
+      });
+      await this.readApiResult(response, "分区删除失败");
+    },
+    async moveTasksBeforeDeletingSection(sectionId, fallbackId) {
+      const tasksToMove = this.tasks.filter((task) => task.status === sectionId);
+      for (let index = 0; index < tasksToMove.length; index += 1) {
+        const task = tasksToMove[index];
+        await this.modifyTaskCard({
+          id: Number(task.id),
+          sectionId: Number(fallbackId),
+          sort: this.nextTaskSort(fallbackId) + index * 10
+        });
+      }
     },
     saveState() {
       if (!useMockBoardDetail || !this.boardId) {

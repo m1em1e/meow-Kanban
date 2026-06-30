@@ -76,6 +76,14 @@ public class BoardSectionServiceImpl extends ServiceImpl<BoardSectionMapper, Boa
 
 	@Override
 	@Transactional
+	public void renameSectionCard(BoardSectionModifyParam param) {
+		BoardSection boardSection = boardSectionMapper.selectById(param.getId());
+		boardSection.setTitle(param.getTitle().trim());
+		boardSectionMapper.updateById(boardSection);
+	}
+
+	@Override
+	@Transactional
 	public void addSectionCard(BoardSectionAddParam param) {
 		if (param == null || param.getBoardId() == null) {
 			throw new BaseException("看板 ID 不能为空");

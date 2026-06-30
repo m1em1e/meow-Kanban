@@ -10,6 +10,8 @@ import lombok.Data;
 @Data
 public class BoardSectionModifyParam {
 	private Long boardId;
+	private Long id;
+	private String title;
 	private Integer sourceSort;
 	private Integer targetSort;
 }

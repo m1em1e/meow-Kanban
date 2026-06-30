@@ -152,11 +152,32 @@
               @dragend="endSectionDrag"
             >
               <div class="column-title">
-                <h2 class="editable-section-title" :title="section.name" @dblclick="renameSection(section.id)">{{ section.name }}</h2>
+                <h2 class="editable-section-title" :title="section.name" @dblclick="openRenameSectionMenu(section.id)">{{ section.name }}</h2>
                 <span class="count">{{ tasksBySection(section.id).length }}</span>
               </div>
               <div class="column-actions">
-                <button class="column-action" type="button" title="重命名" @click="renameSection(section.id)">改</button>
+                <div class="section-rename-manager">
+                  <button
+                    class="column-action"
+                    type="button"
+                    title="重命名"
+                    :aria-expanded="String(sectionRenameOpenId === section.id)"
+                    :aria-controls="`sectionRenameMenu-${section.id}`"
+                    @click="openRenameSectionMenu(section.id)"
+                  >改</button>
+                  <div
+                    class="section-menu section-rename-menu"
+                    :id="`sectionRenameMenu-${section.id}`"
+                    :aria-hidden="String(sectionRenameOpenId !== section.id)"
+                    :class="{ open: sectionRenameOpenId === section.id }"
+                  >
+                    <label class="section-field">
+                      <span>分区名称</span>
+                      <input v-model.trim="sectionRenameName" type="text" placeholder="如：待发布" @keyup.enter="submitRenameSection(section.id)">
+                    </label>
+                    <button class="button primary" type="button" @click="submitRenameSection(section.id)">保存名称</button>
+                  </div>
+                </div>
                 <button class="column-action danger" type="button" title="删除分区" @click="deleteSection(section.id)">删</button>
               </div>
             </header>
@@ -233,6 +254,9 @@
           <div class="drawer-tags">
             <span v-for="tag in selectedTask.tags" :key="tag" class="badge">{{ tag }}</span>
           </div>
+        </div>
+        <div class="drawer-actions">
+          <button class="button secondary danger" type="button" @click="deleteTask(selectedTask.id)">删除任务</button>
         </div>
       </div>
     </aside>

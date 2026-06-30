@@ -14,6 +14,8 @@ public interface IBoardSectionService extends IService<BoardSection> {
 
 	void modifySectionSort(BoardSectionModifyParam param);
 
+	void renameSectionCard(BoardSectionModifyParam param);
+
 	void addSectionCard(BoardSectionAddParam param);
 
 	void deleteById(Long id);
