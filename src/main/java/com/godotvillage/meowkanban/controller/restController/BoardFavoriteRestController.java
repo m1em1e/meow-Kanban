@@ -22,7 +22,7 @@ public class BoardFavoriteRestController {
 
     @DeleteMapping("/del-favorite")
     public Result delFavorite(@RequestBody IdParam param) {
-        boardFavoriteService.delFavorite(param);
+        boardFavoriteService.delFavorite(param, LoginUtil.getLoginId());
         return Result.success();
     }
 

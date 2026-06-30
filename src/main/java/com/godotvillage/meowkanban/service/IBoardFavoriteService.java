@@ -8,6 +8,6 @@ public interface IBoardFavoriteService extends IService<BoardFavorite> {
 
     void addFavorite(IdParam param, Long loginId);
 
-    void delFavorite(IdParam param);
+    void delFavorite(IdParam param, Long loginId);
 
 }

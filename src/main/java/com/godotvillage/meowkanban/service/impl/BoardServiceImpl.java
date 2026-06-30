@@ -40,13 +40,10 @@ public class BoardServiceImpl extends ServiceImpl<BoardMapper, Board> implements
 		}
 		param.setUserId(LoginUtil.getLoginId());
 
-		Page<Board> page = new Page<>(param.getPageIndex(), param.getPageSize());
-		IPage<Board> boardPage = baseMapper.getBoardInfoList(page, param);
-		List<BoardInfoVO> records = boardPage.getRecords().stream()
-				.map(this::toBoardInfo)
-				.toList();
+		Page<BoardInfoVO> page = new Page<>(param.getPageIndex(), param.getPageSize());
+		IPage<BoardInfoVO> boardPage = baseMapper.getBoardInfoList(page, param);
 		return PageResult.of(
-				records,
+				boardPage.getRecords(),
 				boardPage.getTotal(),
 				boardPage.getCurrent(),
 				boardPage.getSize(),

@@ -1,7 +1,8 @@
 package com.godotvillage.meowkanban.service.impl;
 
-import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import cn.hutool.core.util.IdUtil;
+import com.godotvillage.meowkanban.common.exception.BaseException;
 import com.godotvillage.meowkanban.domain.entity.BoardRecent;
 import com.godotvillage.meowkanban.mapper.BoardRecentMapper;
 import com.godotvillage.meowkanban.service.IBoardRecentService;
@@ -16,22 +17,14 @@ public class BoardRecentServiceImpl extends ServiceImpl<BoardRecentMapper, Board
 	@Override
 	@Transactional
 	public void accessBoard(Long id, Long loginId) {
-		BoardRecent boardRecent = baseMapper.selectOne(Wrappers.<BoardRecent>lambdaQuery()
-				.eq(BoardRecent::getBoardId, id)
-				.eq(BoardRecent::getUserId, loginId)
-		);
-
-		if (boardRecent == null) {
-			boardRecent = new BoardRecent();
-			boardRecent.setBoardId(id);
-			boardRecent.setUserId(loginId);
-			boardRecent.setLastActiveTime(LocalDateTime.now());
-			boardRecent.setActiveCount(1);
-		} else {
-			boardRecent.setActiveCount(boardRecent.getActiveCount() + 1);
+		if (id == null) {
+			throw new BaseException("看板 ID 不能为空");
+		}
+		if (loginId == null) {
+			throw new BaseException("请先登录");
 		}
 
-		this.save(boardRecent);
+		baseMapper.upsertRecent(IdUtil.getSnowflakeNextId(), id, loginId, LocalDateTime.now());
 	}
 
 }

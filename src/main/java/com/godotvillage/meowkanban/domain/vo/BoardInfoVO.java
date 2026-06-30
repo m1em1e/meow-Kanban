@@ -19,4 +19,6 @@ public class BoardInfoVO {
 
     private Integer visibility;
 
+    private Boolean favorited;
+
 }

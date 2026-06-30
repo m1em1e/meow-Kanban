@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.godotvillage.meowkanban.domain.entity.Board;
 import com.godotvillage.meowkanban.domain.param.BoardInfoQueryParam;
 import com.godotvillage.meowkanban.domain.vo.BoardDetailVO;
+import com.godotvillage.meowkanban.domain.vo.BoardInfoVO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -14,7 +15,7 @@ import java.util.List;
 @Mapper
 public interface BoardMapper extends BaseMapper<Board> {
 
-    IPage<Board> getBoardInfoList(Page<Board> page, @Param("param") BoardInfoQueryParam param);
+    IPage<BoardInfoVO> getBoardInfoList(Page<BoardInfoVO> page, @Param("param") BoardInfoQueryParam param);
 
     List<Board> getRecentParticipatedBoards(@Param("userId") Long userId);
 

@@ -52,13 +52,23 @@
     </resultMap>
 
     <select id="getBoardInfoList"
-            resultType="com.godotvillage.meowkanban.domain.entity.Board">
-        SELECT b.*
+            resultType="com.godotvillage.meowkanban.domain.vo.BoardInfoVO">
+        SELECT b.id,
+               b.name,
+               b.description,
+               b.cover_resource_id,
+               b.owner_id,
+               b.visibility,
+               CASE WHEN bf.id IS NULL THEN 0 ELSE 1 END AS favorited
         FROM mk_board b
         LEFT JOIN mk_board_recent br
           ON br.board_id = b.id
          AND br.user_id = #{param.userId}
          AND br.deleted = 0
+        LEFT JOIN mk_board_favorite bf
+          ON bf.board_id = b.id
+         AND bf.user_id = #{param.userId}
+         AND bf.deleted = 0
         LEFT JOIN mk_board_member bm
           ON bm.board_id = b.id
          AND bm.user_id = #{param.userId}
